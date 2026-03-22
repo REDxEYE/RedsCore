@@ -9,7 +9,7 @@
 
 struct ArchiveEntry {
     uint32 path_hash;
-    uint32 size;
+    uint64 size;
 };
 
 
