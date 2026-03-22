@@ -31,6 +31,7 @@ FetchContent_Declare(
         GIT_REPOSITORY "https://github.com/facebook/zstd"
         GIT_TAG v1.5.7
         SOURCE_SUBDIR build/cmake
+        GIT_SHALLOW TRUE
 )
 
 SET(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
@@ -43,6 +44,7 @@ FetchContent_Declare(
         tinygltf
         GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
         GIT_TAG v2.9.7
+        GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(tinygltf)
 
@@ -50,6 +52,7 @@ FetchContent_Declare(
         glm
         GIT_REPOSITORY "https://github.com/g-truc/glm"
         GIT_TAG 1.0.3
+        GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(glm)
 
@@ -58,6 +61,7 @@ FetchContent_Declare(
         QUIET
         GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
         GIT_TAG v2.6.2
+        GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(cli11_proj)
 
@@ -66,6 +70,7 @@ FetchContent_Declare(
         QUIET
         GIT_REPOSITORY https://github.com/nlohmann/json.git
         GIT_TAG v3.12.0
+        GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(json)
 
@@ -73,5 +78,6 @@ FetchContent_Declare(
         tinycpng
         QUIET
         GIT_REPOSITORY https://github.com/REDxEYE/tinycpng.git
+        GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(tinycpng)
