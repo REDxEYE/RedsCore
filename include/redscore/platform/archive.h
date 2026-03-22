@@ -8,7 +8,7 @@
 #include "redscore/platform/file/memory_buffer.h"
 
 struct ArchiveEntry {
-    uint32 path_hash;
+    uint64 path_hash;
     uint64 size;
 };
 
@@ -19,17 +19,17 @@ public:
 
     [[nodiscard]] virtual bool has_file(std::string_view path) = 0;
 
-    [[nodiscard]] virtual bool has_file(uint32 hash) = 0;
+    [[nodiscard]] virtual bool has_file(uint64 hash) = 0;
 
     virtual std::unique_ptr<IO::File> get_file(std::string_view path) = 0;
 
-    virtual std::unique_ptr<IO::File> get_file(uint32 hash) = 0;
+    virtual std::unique_ptr<IO::File> get_file(uint64 hash) = 0;
 
     virtual void all_entries(std::vector<ArchiveEntry> &entries) const = 0;
 
     [[nodiscard]] virtual std::string get_name() const = 0;
 
-    virtual uint32 hash() = 0;
+    virtual uint64 hash() = 0;
 
     bool foreach_file(const std::function<bool (const ArchiveEntry &)> &callback) const {
         std::vector<ArchiveEntry> entries;
