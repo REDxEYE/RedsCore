@@ -67,25 +67,6 @@ void ArchiveManager::all_entries(std::vector<ArchiveEntry> &entries) const {
         archive->all_entries(entries);
     }
 }
-//
-// std::pair<bool, uint32> ArchiveManager::ensure_parent_loaded(const uint32 hash) {
-//     auto parent_opt = get_file_parent(hash);
-//     if (!parent_opt || *parent_opt == 0) return {false, 0};
-//
-//     const auto parent_hash = *parent_opt;
-//     const auto was_mounted = is_mounted(parent_hash);
-//     const auto mounted = m_load_archive(*this, parent_hash);
-//
-//     if (mounted.first) {
-//         touch_dynamic_mount(mounted.second != 0 ? mounted.second : parent_hash);
-//         evict_dynamic_mounts();
-//     }
-//     else if (was_mounted && m_dynamic_mount_set.contains(parent_hash)) {
-//         touch_dynamic_mount(parent_hash);
-//     }
-//
-//     return mounted;
-// }
 
 void ArchiveManager::touch_dynamic_mount(const uint32 hash) {
     if (!m_dynamic_mount_set.insert(hash).second) {
