@@ -53,10 +53,8 @@ protected:
     std::unordered_map<uint32, std::unique_ptr<Archive>> m_archives;
     load_archive_callback m_load_archive;
 
-private:
     static constexpr size_t MAX_DYNAMIC_MOUNTS = 16;
 
-    std::pair<bool, uint32> ensure_parent_loaded(uint32 hash);
     void touch_dynamic_mount(uint32 hash);
     void evict_dynamic_mounts();
     void forget_dynamic_mount(uint32 hash);
