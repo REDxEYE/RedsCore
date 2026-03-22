@@ -2,10 +2,6 @@
 
 #include "redscore/platform/app_state.h"
 
-ArchiveManager &AppState::manager() {
-    return m_archive_manager;
-}
-
 const std::filesystem::path & AppState::export_path() const {
     return m_export_path;
 }
