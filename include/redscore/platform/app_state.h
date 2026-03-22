@@ -14,8 +14,6 @@ public:
 
     AppState(){}
 
-    ArchiveManager &manager();
-
     [[nodiscard]] const std::filesystem::path &export_path() const;
 
     void export_path(const std::filesystem::path &path);
