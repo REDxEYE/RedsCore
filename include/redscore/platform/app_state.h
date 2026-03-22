@@ -1,7 +1,6 @@
 // Created by RED on 01.02.2026.
 
-#ifndef APEXPREDATOR_APP_STATE_H
-#define APEXPREDATOR_APP_STATE_H
+#pragma once
 #include "redscore/platform/archive_manager.h"
 #include "gltf_helper.h"
 #include "redscore/utils/common.h"
@@ -36,4 +35,3 @@ private:
 
 };
 
-#endif //APEXPREDATOR_APP_STATE_H

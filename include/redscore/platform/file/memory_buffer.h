@@ -1,7 +1,6 @@
 // Created by RED on 18.09.2025.
 
-#ifndef APEXPREDATOR_MEMORY_BUFFER_H
-#define APEXPREDATOR_MEMORY_BUFFER_H
+#pragma once
 #include <span>
 
 #include "redscore/platform/buffer/buffer.h"
@@ -101,4 +100,3 @@ namespace IO {
         ConstByteBufferView m_data;
     };
 }
-#endif //APEXPREDATOR_MEMORY_BUFFER_H

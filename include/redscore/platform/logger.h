@@ -1,7 +1,6 @@
 // Created by RED on 17.01.2026.
 
-#ifndef APEXPREDATOR_LOGGER_H
-#define APEXPREDATOR_LOGGER_H
+#pragma once
 
 #include <format>
 #include <string_view>
@@ -106,5 +105,3 @@ namespace GLog {
 #define GLog_Info(...) GLog::info_s(GLog::file_name(__FILE__), __LINE__, __VA_ARGS__)
 #define GLog_Warning(...) GLog::warning_s(GLog::file_name(__FILE__), __LINE__, __VA_ARGS__)
 #define GLog_Error(...) GLog::error_s(GLog::file_name(__FILE__), __LINE__, __VA_ARGS__)
-
-#endif //APEXPREDATOR_LOGGER_H

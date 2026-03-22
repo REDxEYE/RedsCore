@@ -1,7 +1,6 @@
 // Created by RED on 30.09.2025.
 
-#ifndef APEXPREDATOR_TEXTURE_H
-#define APEXPREDATOR_TEXTURE_H
+#pragma once
 #include <filesystem>
 #include <format>
 #include <vector>
@@ -151,4 +150,3 @@ private:
 };
 
 
-#endif //APEXPREDATOR_TEXTURE_H

@@ -455,7 +455,6 @@ void Texture::save(const std::filesystem::path &path_without_ext) const {
         PNGFile file = {};
         png_from_data(m_data.data(), m_data.size(), m_width, m_height, m_channel_count, 8, &file);
 
-
         std::filesystem::create_directories(output_path.parent_path());
         FILE *file_handle = fopen(output_path.string().c_str(), "wb");
         UserIO io = {.read_func = native_file_read, .write_func = native_file_write, .user_file = file_handle};

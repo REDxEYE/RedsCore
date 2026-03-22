@@ -1,7 +1,6 @@
 // Created by RED on 18.02.2026.
 
-#ifndef APEXPREDATOR_SIMPLE_FILEIO_H
-#define APEXPREDATOR_SIMPLE_FILEIO_H
+#pragma once
 #include "redscore/int_def.h"
 
 #include <filesystem>
@@ -9,4 +8,3 @@
 
 void write_file(const std::filesystem::path& path, const std::span<const uint8> &data);
 
-#endif //APEXPREDATOR_SIMPLE_FILEIO_H

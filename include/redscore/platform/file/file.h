@@ -1,7 +1,6 @@
 // Created by RED on 17.09.2025.
 
-#ifndef APEXPREDATOR_BUFFER_H
-#define APEXPREDATOR_BUFFER_H
+#pragma once
 #include <span>
 #include <vector>
 #include "fstream"
@@ -93,4 +92,3 @@ namespace IO {
         // virtual std::span<uint8> buffer() = 0;
     };
 }
-#endif //APEXPREDATOR_BUFFER_H

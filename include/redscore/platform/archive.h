@@ -1,7 +1,6 @@
 // Created by RED on 02.10.2025.
 
-#ifndef APEXPREDATOR_ARCHIVE_H
-#define APEXPREDATOR_ARCHIVE_H
+#pragma once
 #include <memory>
 #include <functional>
 
@@ -44,4 +43,3 @@ public:
     }
 };
 
-#endif //APEXPREDATOR_ARCHIVE_H

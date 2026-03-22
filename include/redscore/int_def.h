@@ -1,7 +1,6 @@
 // Created by RED on 17.09.2025.
 
-#ifndef APEXPREDATOR_INT_DEF_H
-#define APEXPREDATOR_INT_DEF_H
+#pragma once
 
 #include <stdint.h>
 
@@ -28,4 +27,3 @@ typedef float f32;
 typedef double f64;
 
 
-#endif //APEXPREDATOR_INT_DEF_H

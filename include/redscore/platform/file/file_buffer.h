@@ -1,7 +1,6 @@
 // Created by RED on 17.09.2025.
 
-#ifndef APEXPREDATOR_FILE_BUFFER_H
-#define APEXPREDATOR_FILE_BUFFER_H
+#pragma once
 
 #include <filesystem>
 
@@ -61,4 +60,3 @@ namespace IO {
         std::fstream m_stream;
     };
 }
-#endif //APEXPREDATOR_FILE_BUFFER_H

@@ -1,7 +1,6 @@
 // Created by RED on 02.10.2025.
 
-#ifndef APEXPREDATOR_ARCHIVE_MANAGER_H
-#define APEXPREDATOR_ARCHIVE_MANAGER_H
+#pragma once
 
 #include <utility>
 #include <vector>
@@ -63,4 +62,3 @@ private:
     load_archive_callback m_load_archive;
 };
 
-#endif //APEXPREDATOR_ARCHIVE_MANAGER_H

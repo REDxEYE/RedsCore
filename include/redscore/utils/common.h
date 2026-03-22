@@ -1,7 +1,6 @@
 // Created by RED on 24.09.2025.
 
-#ifndef APEXPREDATOR_COMMON_H
-#define APEXPREDATOR_COMMON_H
+#pragma once
 
 #include <filesystem>
 #include "redscore/int_def.h"
@@ -42,4 +41,3 @@ namespace path_utils {
 
 }
 
-#endif //APEXPREDATOR_COMMON_H
