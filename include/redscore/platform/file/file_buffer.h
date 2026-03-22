@@ -7,7 +7,7 @@
 
 #include "fstream"
 
-#include "platform/file/file.h"
+#include "redscore/platform/file/file.h"
 
 namespace IO {
     class NativeFile : public File {

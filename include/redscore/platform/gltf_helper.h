@@ -5,9 +5,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "int_def.h"
+#include "redscore/int_def.h"
 #include "tiny_gltf.h"
-#include "platform/logger.h"
+#include "redscore/platform/logger.h"
 
 #include "glm/glm.hpp"
 

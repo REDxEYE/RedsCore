@@ -1,15 +1,15 @@
 // Created by RED on 30.09.2025.
 
-#include "platform/texture.h"
-#include "bcdec.h"
+#include "redscore/platform/texture.h"
+#include "../../include/redscore/bcdec.h"
 #include <cassert>
 #include <cstring>
 #include <filesystem>
 
 #include "library.h"
 #include "tracy/Tracy.hpp"
-#include "platform/logger.h"
-// #include "utils/stb_image_write.h"
+#include "redscore/platform/logger.h"
+// #include "redscore/utils/stb_image_write.h"
 
 
 float32 float16_to_float32(uint16 v) {

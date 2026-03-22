@@ -1,7 +1,7 @@
 // Created by RED on 23.09.2025.
 
 #define BCDEC_IMPLEMENTATION
-#include "bcdec.h"
+#include "../include/redscore/bcdec.h"
 
 #include "json.hpp"
 

@@ -6,7 +6,7 @@
 #include <format>
 #include <string_view>
 #include <iostream>
-#include "int_def.h"
+#include "redscore/int_def.h"
 
 enum class LogLevel {
     Info,

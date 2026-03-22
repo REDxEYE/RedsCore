@@ -2,14 +2,9 @@
 
 #ifndef APEXPREDATOR_APP_STATE_H
 #define APEXPREDATOR_APP_STATE_H
-#include <format>
-#include "platform/archive_manager.h"
+#include "redscore/platform/archive_manager.h"
 #include "gltf_helper.h"
-#include "utils/common.h"
-
-namespace std::filesystem::__cxx11 {
-    class path;
-}
+#include "redscore/utils/common.h"
 
 class AppState {
 public:

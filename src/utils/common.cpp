@@ -1,6 +1,6 @@
 // Created by RED on 24.09.2025.
 
-#include "utils/common.h"
+#include "redscore/utils/common.h"
 
 #include <cstdlib>
 #include <format>

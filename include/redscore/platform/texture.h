@@ -7,7 +7,7 @@
 #include <vector>
 #include <span>
 
-#include "int_def.h"
+#include "redscore/int_def.h"
 
 enum class DDSDXGIFormat:uint32 {
     DXGI_FORMAT_R16G16B16A16_TYPELESS = 9,

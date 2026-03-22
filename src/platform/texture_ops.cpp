@@ -1,11 +1,11 @@
 // Crutils/buffereated by RED on 14.01.2026.
 
-#include "platform/texture_ops.h"
+#include "redscore/platform/texture_ops.h"
 
 #include <cassert>
 #include <memory>
 
-#include "platform/logger.h"
+#include "redscore/platform/logger.h"
 
 std::unique_ptr<Texture> multiply_4c_by_1c(const Texture* a, const Texture* b) {
     // Fast path

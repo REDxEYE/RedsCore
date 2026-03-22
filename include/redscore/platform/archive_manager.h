@@ -8,7 +8,7 @@
 #include <memory>
 #include <deque>
 #include <unordered_set>
-#include "platform/archive.h"
+#include "redscore/platform/archive.h"
 
 class ArchiveManager: public Archive{
     using load_archive_callback = std::function<std::pair<bool, uint32>(ArchiveManager &manager, uint32 hash)>;

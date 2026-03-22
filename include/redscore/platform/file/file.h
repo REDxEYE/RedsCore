@@ -6,7 +6,7 @@
 #include <vector>
 #include "fstream"
 
-#include "int_def.h"
+#include "redscore/int_def.h"
 
 namespace IO {
     class File {

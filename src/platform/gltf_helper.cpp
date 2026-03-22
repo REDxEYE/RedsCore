@@ -1,6 +1,6 @@
 // Created by RED on 08.03.2026.
 
-#include "../../include/platform/gltf_helper.h"
+#include "redscore/platform/gltf_helper.h"
 
 #include <algorithm>
 #include <ranges>

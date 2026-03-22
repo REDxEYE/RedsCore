@@ -1,6 +1,6 @@
 // Created by RED on 01.02.2026.
 
-#include "platform/app_state.h"
+#include "redscore/platform/app_state.h"
 
 ArchiveManager &AppState::manager() {
     return m_archive_manager;

@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "int_def.h"
+#include "redscore/int_def.h"
 
 template<typename T>
 class BufferView {
