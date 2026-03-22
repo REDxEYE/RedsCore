@@ -7,7 +7,7 @@
 
 class AppState {
 public:
-    AppState(const std::filesystem::__cxx11::path &game_root) : AppState() {
+    AppState(const std::filesystem::path &game_root) : AppState() {
         m_game_root = game_root;
         convert_to_wsl(m_game_root);
     }
