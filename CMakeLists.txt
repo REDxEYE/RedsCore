@@ -20,7 +20,7 @@ add_library(RedsCore STATIC
         src/utils/common.cpp
 )
 target_include_directories(RedsCore PUBLIC include)
-target_link_libraries(RedsCore PUBLIC tinygltf glm::glm tinycpng-static Tracy::TracyClient)
+target_link_libraries(RedsCore PUBLIC tinygltf glm::glm tinycpng-static Tracy::TracyClient zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)
 
 add_executable(ToolRunner src/ToolRunner.cpp)
 target_link_libraries(ToolRunner PUBLIC RedsCore)
