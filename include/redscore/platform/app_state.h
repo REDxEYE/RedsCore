@@ -25,7 +25,7 @@ public:
     }
 
 
-private:
+protected:
     GltfHelper m_gltf_helper{};
     std::filesystem::path m_game_root;
     std::filesystem::path m_export_path;
