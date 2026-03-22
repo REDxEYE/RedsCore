@@ -20,6 +20,7 @@ add_library(RedsCore STATIC
         src/utils/common.cpp
         src/utils/memory_debugger.cpp
         src/utils/simple_fileio.cpp
+        src/utils/compression.cpp
 )
 target_include_directories(RedsCore PUBLIC include)
 target_link_libraries(RedsCore PUBLIC tinygltf glm::glm tinycpng-static Tracy::TracyClient zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)

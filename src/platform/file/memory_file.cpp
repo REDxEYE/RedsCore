@@ -1,6 +1,6 @@
 // Created by RED on 18.09.2025.
 
-#include "redscore/platform/file/memory_buffer.h"
+#include "redscore/platform/file/memory_file.h"
 #include <cstdlib>
 #include <cstring>
 

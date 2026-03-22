@@ -5,7 +5,7 @@
 #include <functional>
 
 #include "redscore/int_def.h"
-#include "redscore/platform/file/memory_buffer.h"
+#include "redscore/platform/file/memory_file.h"
 
 struct ArchiveEntry {
     uint64 path_hash;
