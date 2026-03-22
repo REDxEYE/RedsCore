@@ -12,8 +12,7 @@ public:
         convert_to_wsl(m_game_root);
     }
 
-    AppState() : m_archive_manager(nullptr) {
-    }
+    AppState(){}
 
     ArchiveManager &manager();
 
@@ -25,11 +24,9 @@ public:
         return m_gltf_helper;
     }
 
-    bool skip_textures{false};
 
 private:
     GltfHelper m_gltf_helper{};
-    ArchiveManager m_archive_manager;
     std::filesystem::path m_game_root;
     std::filesystem::path m_export_path;
 
