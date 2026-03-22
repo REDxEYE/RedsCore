@@ -17,9 +17,9 @@ class Archive {
 public:
     virtual ~Archive() = default;
 
-    [[nodiscard]] virtual bool has_file(std::string_view path) const = 0;
+    [[nodiscard]] virtual bool has_file(std::string_view path) = 0;
 
-    [[nodiscard]] virtual bool has_file(uint32 hash) const = 0;
+    [[nodiscard]] virtual bool has_file(uint32 hash) = 0;
 
     virtual std::unique_ptr<IO::File> get_file(std::string_view path) = 0;
 

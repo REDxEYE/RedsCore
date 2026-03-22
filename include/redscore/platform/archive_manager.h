@@ -25,8 +25,8 @@ public:
     void unmount(uint32 archive_hash);
     void unmount(std::string_view name);
 
-    [[nodiscard]] bool has_file(uint32 hash) const override;
-    [[nodiscard]] bool has_file(std::string_view name) const override;
+    [[nodiscard]] bool has_file(uint32 hash) override;
+    [[nodiscard]] bool has_file(std::string_view name) override;
 
 
     std::unique_ptr<IO::File> get_file(uint32 hash) override;

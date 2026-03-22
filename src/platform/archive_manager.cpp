@@ -32,7 +32,7 @@ void ArchiveManager::unmount(const std::string_view name) {
     unmount(hash_string(name));
 }
 
-bool ArchiveManager::has_file(const uint32 hash) const {
+bool ArchiveManager::has_file(const uint32 hash) {
     ZoneScoped;
     for (const auto &archive: m_archives | std::views::values) {
         if (archive->has_file(hash)) return true;
@@ -40,7 +40,7 @@ bool ArchiveManager::has_file(const uint32 hash) const {
     return false;
 }
 
-bool ArchiveManager::has_file(const std::string_view name) const {
+bool ArchiveManager::has_file(const std::string_view name) {
     return has_file(hash_string(name));
 }
 
