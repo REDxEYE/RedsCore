@@ -46,10 +46,8 @@ bool ArchiveManager::has_file(const std::string_view name) {
 
 std::unique_ptr<IO::File> ArchiveManager::get_file(const uint64 hash) {
     ZoneScoped
-    // ensure_parent_loaded(hash);
-
     for (const auto &archive: m_archives | std::views::values) {
-        if (auto file = archive->get_file(hash); file) {
+        if (auto file = archive->get_file(hash)) {
             return std::move(file);
         }
     }
@@ -70,7 +68,7 @@ void ArchiveManager::all_entries(std::vector<ArchiveEntry> &entries) const {
 
 void ArchiveManager::touch_dynamic_mount(const uint64 hash) {
     if (!m_dynamic_mount_set.insert(hash).second) {
-        const auto it = std::ranges::find(m_dynamic_mount_order, hash);
+        const auto &it = std::ranges::find(m_dynamic_mount_order, hash);
         if (it != m_dynamic_mount_order.end()) {
             m_dynamic_mount_order.erase(it);
         }

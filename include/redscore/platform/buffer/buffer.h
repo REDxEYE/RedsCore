@@ -59,7 +59,7 @@ namespace IO {
             return data_[index];
         }
 
-        [[nodiscard]] std::span<const T> as_span() const {
+        [[nodiscard]] std::span<const value_type> as_span() const {
             return {data_, size_};
         }
 
@@ -202,6 +202,7 @@ namespace IO {
         [[nodiscard]] bool is_owning() const noexcept { return backend_->is_owning(); }
         [[nodiscard]] bool is_mutable() const noexcept { return backend_->is_mutable(); }
         [[nodiscard]] bool is_resizable() const noexcept { return backend_->is_resizable(); }
+        [[nodiscard]] bool is_expandable() const noexcept { return backend_->is_expandable(); }
 
         [[nodiscard]] pointer data() { return backend_->data_mut(); }
         [[nodiscard]] const_pointer data() const noexcept { return backend_->data(); }
@@ -239,6 +240,14 @@ namespace IO {
             return (*this)[index];
         }
 
+        template<typename T>
+        [[nodiscard]] const T* reinterpret_at(const size_type offset) const {
+            if (offset+sizeof(T)>size()) {
+                throw std::out_of_range("Buffer::reinterpret_at index+sizeof is out of range");
+            }
+            return reinterpret_cast<const T*>(this->data()+offset);
+        }
+
         [[nodiscard]] std::span<const u8> as_span() const {
             return {data(), size()};
         }
@@ -247,15 +256,15 @@ namespace IO {
             return {data(), size()};
         }
 
-        void clear() const { backend_->clear(); }
+        void clear() { backend_->clear(); }
 
-        void resize(const size_type new_size) const { backend_->resize(new_size); }
+        void resize(const size_type new_size) { backend_->resize(new_size); }
 
-        void reserve(const size_type new_capacity) const { backend_->reserve(new_capacity); }
+        void reserve(const size_type new_capacity) { backend_->reserve(new_capacity); }
 
-        void push_back(const u8 value) const { backend_->push_back(value); }
+        void push_back(const u8 value) { backend_->push_back(value); }
 
-        void append(const u8 *bytes, const size_type count) const {
+        void append(const u8 *bytes, const size_type count) {
             if (count == 0) {
                 return;
             }
@@ -265,10 +274,14 @@ namespace IO {
             backend_->append(bytes, count);
         }
 
-        void append(const ConstByteBufferView bytes) const { append(bytes.data(), bytes.size()); }
+        void append(const ConstByteBufferView bytes) { append(bytes.data(), bytes.size()); }
 
-        void append(const std::initializer_list<u8> values) const {
+        void append(const std::initializer_list<u8> values) {
             append(values.begin(), values.size());
+        }
+
+        [[nodiscard]] std::vector<u8> to_vector() const {
+            return {begin(), end()};
         }
 
         template<typename T>
@@ -342,6 +355,8 @@ namespace IO {
 
             [[nodiscard]] virtual bool is_resizable() const noexcept = 0;
 
+            [[nodiscard]] virtual bool is_expandable() const noexcept = 0;
+
             [[nodiscard]] virtual u8 *data_mut() = 0;
 
             [[nodiscard]] virtual const u8 *data() const noexcept = 0;
@@ -374,6 +389,7 @@ namespace IO {
             [[nodiscard]] bool is_owning() const noexcept override { return true; }
             [[nodiscard]] bool is_mutable() const noexcept override { return true; }
             [[nodiscard]] bool is_resizable() const noexcept override { return true; }
+            [[nodiscard]] bool is_expandable() const noexcept override { return true; }
 
             [[nodiscard]] u8 *data_mut() override { return data_.data(); }
             [[nodiscard]] const u8 *data() const noexcept override { return data_.data(); }
@@ -409,6 +425,7 @@ namespace IO {
             [[nodiscard]] bool is_owning() const noexcept override { return true; }
             [[nodiscard]] bool is_mutable() const noexcept override { return true; }
             [[nodiscard]] bool is_resizable() const noexcept override { return true; }
+            [[nodiscard]] bool is_expandable() const noexcept override { return true; }
 
             [[nodiscard]] u8 *data_mut() override { return data_.get(); }
             [[nodiscard]] const u8 *data() const noexcept override { return data_.get(); }
@@ -479,6 +496,7 @@ namespace IO {
             [[nodiscard]] bool is_owning() const noexcept override { return false; }
             [[nodiscard]] bool is_mutable() const noexcept override { return true; }
             [[nodiscard]] bool is_resizable() const noexcept override { return true; }
+            [[nodiscard]] bool is_expandable() const noexcept override { return false; }
 
             [[nodiscard]] u8 *data_mut() override { return data_; }
             [[nodiscard]] const u8 *data() const noexcept override { return data_; }
@@ -525,6 +543,7 @@ namespace IO {
             [[nodiscard]] bool is_owning() const noexcept override { return false; }
             [[nodiscard]] bool is_mutable() const noexcept override { return false; }
             [[nodiscard]] bool is_resizable() const noexcept override { return false; }
+            [[nodiscard]] bool is_expandable() const noexcept override { return false; }
 
             [[nodiscard]] u8 *data_mut() override {
                 throw std::runtime_error("Buffer is read-only");

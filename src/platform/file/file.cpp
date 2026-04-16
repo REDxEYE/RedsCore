@@ -50,9 +50,10 @@ std::string IO::File::read_cstring() {
 void IO::File::read_string(const uint32 size, std::string &str) {
     str.clear();
     str.resize(size);
-    const auto read_bytes = read(str.data(), size);
-    if (read_bytes < size) {
-        str.resize(read_bytes);
+    if (const auto read_bytes = read(str.data(), size); read_bytes < size) {
         throw std::runtime_error("Failed to read the expected number of bytes for string");
+    }
+    if (size>0 && str[size-1]=='\0') {
+        str.resize(size-1);
     }
 }

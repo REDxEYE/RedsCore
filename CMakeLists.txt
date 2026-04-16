@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 4.0)
 project(RedsCore)
 set(CMAKE_CXX_STANDARD 23)
 
@@ -21,6 +21,7 @@ add_library(RedsCore STATIC
         src/utils/memory_debugger.cpp
         src/utils/simple_fileio.cpp
         src/utils/compression.cpp
+        include/redscore/utils/png.hpp
 )
 target_include_directories(RedsCore PUBLIC include)
 target_link_libraries(RedsCore PUBLIC tinygltf glm::glm tinycpng-static Tracy::TracyClient zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)

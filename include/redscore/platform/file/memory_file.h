@@ -22,7 +22,7 @@ namespace IO {
             : m_data(std::move(data)) {
         }
 
-        explicit MemoryFile(Buffer data)
+        explicit MemoryFile(Buffer&& data)
             : m_data(std::move(data)) {
         }
 

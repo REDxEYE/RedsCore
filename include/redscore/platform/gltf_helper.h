@@ -119,7 +119,9 @@ public:
 
     int32 create_primitive(int32 mesh_id, int mode = TINYGLTF_MODE_TRIANGLES);
 
-    Handle<tinygltf::Accessor> create_accessor_from_u8(
+    Handle<tinygltf::Buffer> create_buffer(const std::span<const u8> &data, std::string_view name="");
+
+    Handle<tinygltf::Accessor> create_accessor(
         const uint8 *data,
         size_t byte_length,
         int buffer_view_target,
@@ -132,7 +134,7 @@ public:
         const std::string &name = {}
     );
 
-    AccessorChainIds create_accessor_chain_from_u8(
+    AccessorChainIds create_accessor_chain(
         const uint8 *data,
         size_t byte_length,
         int buffer_view_target,
@@ -158,9 +160,8 @@ public:
     );
 
 
-    Handle<tinygltf::Accessor> set_primitive_attribute_from_u8(
-        int32 mesh_id,
-        int32 primitive_index,
+    Handle<tinygltf::Accessor> set_primitive_attribute(
+        tinygltf::Primitive& prim,
         const std::string &attribute_name,
         const uint8 *data,
         size_t byte_length,
@@ -173,9 +174,8 @@ public:
         const std::string &accessor_name = {}
     );
 
-    Handle<tinygltf::Accessor> set_primitive_indices_from_u8(
-        int32 mesh_id,
-        int32 primitive_index,
+    Handle<tinygltf::Accessor> set_primitive_indices(
+        tinygltf::Primitive& prim,
         const uint8 *data,
         size_t byte_length,
         int component_type,
@@ -193,9 +193,9 @@ public:
 
     void reset();
 
-    static void set_node_matrix(tinygltf::Node &node, const glm::mat4 &mat);
+    static void set_node_matrix(const Handle<tinygltf::Node> &node, const glm::mat4 &mat);
 
-    static void set_node_transform(tinygltf::Node &node,
+    static void set_node_transform(const Handle<tinygltf::Node> &node,
                                    const glm::vec3 &translation,
                                    const glm::vec3 &scale,
                                    const glm::quat &rotation);

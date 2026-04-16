@@ -98,7 +98,17 @@ int32 GltfHelper::create_primitive(const int32 mesh_id, const int mode) {
     return static_cast<int32>(mesh.primitives.size() - 1);
 }
 
-IndexedHandle<tinygltf::Accessor, int> GltfHelper::create_accessor_from_u8(
+GltfHelper::Handle<tinygltf::Buffer> GltfHelper::create_buffer(const std::span<const u8> &data,
+                                                                  const std::string_view name) {
+    const auto buffer = make<tinygltf::Buffer>();
+    if (!name.empty()) {
+        buffer->name = name;
+    }
+    buffer->data = std::vector(data.begin(), data.end());
+    return buffer;
+}
+
+GltfHelper::Handle<tinygltf::Accessor> GltfHelper::create_accessor(
     const uint8 *data,
     const size_t byte_length,
     const int buffer_view_target,
@@ -110,7 +120,7 @@ IndexedHandle<tinygltf::Accessor, int> GltfHelper::create_accessor_from_u8(
     const size_t accessor_byte_offset,
     const std::string &name
 ) {
-    return create_accessor_chain_from_u8(
+    return create_accessor_chain(
         data,
         byte_length,
         buffer_view_target,
@@ -124,7 +134,7 @@ IndexedHandle<tinygltf::Accessor, int> GltfHelper::create_accessor_from_u8(
     ).accessor;
 }
 
-GltfHelper::AccessorChainIds GltfHelper::create_accessor_chain_from_u8(
+GltfHelper::AccessorChainIds GltfHelper::create_accessor_chain(
     const uint8 *data,
     const size_t byte_length,
     const int buffer_view_target,
@@ -193,7 +203,7 @@ GltfHelper::AccessorChainIds GltfHelper::create_accessor_chain_from_u8(
     };
 }
 
-IndexedHandle<tinygltf::Image, int32> GltfHelper::create_image_png_data(
+GltfHelper::Handle<tinygltf::Image> GltfHelper::create_image_png_data(
     std::vector<uint8> &&png_data,
     const std::string &name
 ) {
@@ -223,7 +233,7 @@ IndexedHandle<tinygltf::Image, int32> GltfHelper::create_image_png_data(
 GltfHelper::Handle<tinygltf::Texture> GltfHelper::create_texture_png_data(
     std::vector<uint8> &&png_data,
     const std::string &name,
-    Handle<tinygltf::Sampler> sampler
+    const Handle<tinygltf::Sampler> sampler
 ) {
     if (png_data.empty()) {
         throw std::runtime_error("PNG data size must be > 0");
@@ -238,9 +248,8 @@ GltfHelper::Handle<tinygltf::Texture> GltfHelper::create_texture_png_data(
     return texture;
 }
 
-GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_attribute_from_u8(
-    const int32 mesh_id,
-    const int32 primitive_index,
+GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_attribute(
+    tinygltf::Primitive &prim,
     const std::string &attribute_name,
     const uint8 *data,
     const size_t byte_length,
@@ -252,15 +261,7 @@ GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_attribute_from_
     const size_t accessor_byte_offset,
     const std::string &accessor_name
 ) {
-    if (mesh_id < 0 || static_cast<size_t>(mesh_id) >= m_model.meshes.size()) {
-        throw std::runtime_error("Mesh id is out of range");
-    }
-    auto &mesh = m_model.meshes[static_cast<size_t>(mesh_id)];
-    if (primitive_index < 0 || static_cast<size_t>(primitive_index) >= mesh.primitives.size()) {
-        throw std::runtime_error("Primitive index is out of range");
-    }
-
-    const auto accessor = create_accessor_from_u8(
+    const auto accessor = create_accessor(
         data,
         byte_length,
         TINYGLTF_TARGET_ARRAY_BUFFER,
@@ -272,14 +273,12 @@ GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_attribute_from_
         accessor_byte_offset,
         accessor_name
     );
-
-    mesh.primitives[static_cast<size_t>(primitive_index)].attributes[attribute_name] = accessor.index();
+    prim.attributes[attribute_name] = accessor.index();
     return accessor;
 }
 
-GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_indices_from_u8(
-    const int32 mesh_id,
-    const int32 primitive_index,
+GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_indices(
+    tinygltf::Primitive &prim,
     const uint8 *data,
     const size_t byte_length,
     const int component_type,
@@ -288,15 +287,7 @@ GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_indices_from_u8
     const size_t accessor_byte_offset,
     const std::string &accessor_name
 ) {
-    if (mesh_id < 0 || static_cast<size_t>(mesh_id) >= m_model.meshes.size()) {
-        throw std::runtime_error("Mesh id is out of range");
-    }
-    auto &mesh = m_model.meshes[static_cast<size_t>(mesh_id)];
-    if (primitive_index < 0 || static_cast<size_t>(primitive_index) >= mesh.primitives.size()) {
-        throw std::runtime_error("Primitive index is out of range");
-    }
-
-    const auto accessor = create_accessor_from_u8(
+    const auto accessor = create_accessor(
         data,
         byte_length,
         TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER,
@@ -309,7 +300,7 @@ GltfHelper::Handle<tinygltf::Accessor> GltfHelper::set_primitive_indices_from_u8
         accessor_name
     );
 
-    mesh.primitives[static_cast<size_t>(primitive_index)].indices = accessor.index();
+    prim.indices = accessor.index();
     return accessor;
 }
 
@@ -346,7 +337,7 @@ bool is_identity_quat(const glm::quat &q) {
     return glm::length(q - id) <= eps || glm::length(q + id) <= eps;
 }
 
-void GltfHelper::set_node_matrix(tinygltf::Node &node, const glm::mat4 &mat) {
+void GltfHelper::set_node_matrix(const Handle<tinygltf::Node> &node, const glm::mat4 &mat) {
     glm::vec3 translation, scale, skew;
     glm::vec4 perspective;
     glm::quat rotation;
@@ -372,17 +363,17 @@ void GltfHelper::set_node_matrix(tinygltf::Node &node, const glm::mat4 &mat) {
     }
 
     if (!is_all_zero(translation)) {
-        node.translation = {translation.x, translation.y, translation.z};
+        node->translation = {translation.x, translation.y, translation.z};
     }
     if (glm::abs(glm::length(rotation - glm::identity<glm::quat>())) > glm::epsilon<float>()) {
-        node.rotation = {rotation.x, rotation.y, rotation.z, rotation.w};
+        node->rotation = {rotation.x, rotation.y, rotation.z, rotation.w};
     }
     if (!is_all_one(scale)) {
-        node.scale = {scale.x, scale.y, scale.z};
+        node->scale = {scale.x, scale.y, scale.z};
     }
 }
 
-void GltfHelper::set_node_transform(tinygltf::Node &node, const glm::vec3 &translation, const glm::vec3 &scale,
+void GltfHelper::set_node_transform(const Handle<tinygltf::Node> &node, const glm::vec3 &translation, const glm::vec3 &scale,
                                     const glm::quat &rotation) {
     if (glm::any(glm::isnan(translation))) {
         throw std::runtime_error("Translation is NaN");
@@ -404,13 +395,13 @@ void GltfHelper::set_node_transform(tinygltf::Node &node, const glm::vec3 &trans
     }
 
     if (!is_all_zero(translation)) {
-        node.translation = {translation.x, translation.y, translation.z};
+        node->translation = {translation.x, translation.y, translation.z};
     }
     if (!is_identity_quat(rotation)) {
-        node.rotation = {rotation.x, rotation.y, rotation.z, rotation.w};
+        node->rotation = {rotation.x, rotation.y, rotation.z, rotation.w};
     }
     if (!is_all_one(scale)) {
-        node.scale = {scale.x, scale.y, scale.z};
+        node->scale = {scale.x, scale.y, scale.z};
     }
 }
 

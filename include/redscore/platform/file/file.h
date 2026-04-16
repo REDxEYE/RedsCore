@@ -1,6 +1,7 @@
 // Created by RED on 17.09.2025.
 
 #pragma once
+#include <memory>
 #include <span>
 #include <vector>
 #include "fstream"
@@ -91,4 +92,6 @@ namespace IO {
         virtual std::span<const uint8> cbuffer() = 0;
         // virtual std::span<uint8> buffer() = 0;
     };
+
+    using FilePtr = std::unique_ptr<File>;
 }
