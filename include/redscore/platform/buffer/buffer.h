@@ -59,6 +59,15 @@ namespace IO {
             return data_[index];
         }
 
+        template<typename Tp>
+            requires std::is_same_v<value_type, u8>
+        [[nodiscard]] const Tp *reinterpret_at(const size_type offset) const {
+            if (offset + sizeof(T) > size()) {
+                throw std::out_of_range("Buffer::reinterpret_at index+sizeof is out of range");
+            }
+            return reinterpret_cast<const Tp *>(this->data() + offset);
+        }
+
         [[nodiscard]] std::span<const value_type> as_span() const {
             return {data_, size_};
         }
@@ -131,7 +140,8 @@ namespace IO {
                 throw std::out_of_range("BufferView typed view offset is out of range");
             }
 
-            const auto raw_address = reinterpret_cast<std::uintptr_t>(reinterpret_cast<const u8 *>(data_) + byte_offset);
+            const auto raw_address = reinterpret_cast<std::uintptr_t>(
+                reinterpret_cast<const u8 *>(data_) + byte_offset);
             if ((raw_address % alignment) != 0) {
                 throw std::invalid_argument("BufferView typed view is not properly aligned");
             }
@@ -199,6 +209,10 @@ namespace IO {
             return Buffer(std::make_unique<ExternalConstBackend>(data.data(), data.size()));
         }
 
+        static Buffer wrap_borrowed(std::vector<u8> *data) {
+            return Buffer(std::make_unique<BorrowedVectorBackend>(data));
+        }
+
         [[nodiscard]] bool is_owning() const noexcept { return backend_->is_owning(); }
         [[nodiscard]] bool is_mutable() const noexcept { return backend_->is_mutable(); }
         [[nodiscard]] bool is_resizable() const noexcept { return backend_->is_resizable(); }
@@ -241,11 +255,11 @@ namespace IO {
         }
 
         template<typename T>
-        [[nodiscard]] const T* reinterpret_at(const size_type offset) const {
-            if (offset+sizeof(T)>size()) {
+        [[nodiscard]] const T *reinterpret_at(const size_type offset) const {
+            if (offset + sizeof(T) > size()) {
                 throw std::out_of_range("Buffer::reinterpret_at index+sizeof is out of range");
             }
-            return reinterpret_cast<const T*>(this->data()+offset);
+            return reinterpret_cast<const T *>(this->data() + offset);
         }
 
         [[nodiscard]] std::span<const u8> as_span() const {
@@ -340,7 +354,8 @@ namespace IO {
             return {data() + offset, actual_count};
         }
 
-        [[nodiscard]] ConstByteBufferView readonly_view(const size_type offset = 0, const size_type count = npos) const {
+        [[nodiscard]] ConstByteBufferView
+        readonly_view(const size_type offset = 0, const size_type count = npos) const {
             return view(offset, count);
         }
 
@@ -359,11 +374,11 @@ namespace IO {
 
             [[nodiscard]] virtual u8 *data_mut() = 0;
 
-            [[nodiscard]] virtual const u8 *data() const noexcept = 0;
+            [[nodiscard]] virtual const u8 *data() const = 0;
 
-            [[nodiscard]] virtual size_type size() const noexcept = 0;
+            [[nodiscard]] virtual size_type size() const = 0;
 
-            [[nodiscard]] virtual size_type capacity() const noexcept = 0;
+            [[nodiscard]] virtual size_type capacity() const = 0;
 
             virtual void clear() = 0;
 
@@ -407,6 +422,81 @@ namespace IO {
 
         private:
             std::vector<u8> data_;
+        };
+
+        class BorrowedVectorBackend final : public Backend {
+        public:
+            explicit BorrowedVectorBackend(std::vector<u8> *data) : data_(data) {
+            }
+
+            [[nodiscard]] bool is_owning() const noexcept override { return true; }
+
+            [[nodiscard]] bool is_mutable() const noexcept override { return true; }
+
+            [[nodiscard]] bool is_resizable() const noexcept override { return false; };
+
+            [[nodiscard]] bool is_expandable() const noexcept override { return true; };
+
+            [[nodiscard]] u8 *data_mut() override { return data_->data(); }
+
+            [[nodiscard]] const u8 *data() const override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                return data_->data();
+            }
+
+            [[nodiscard]] size_type size() const override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                return data_->size();
+            }
+
+            [[nodiscard]] size_type capacity() const override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                return data_->capacity();
+            }
+
+            void clear() override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                data_->clear();
+            }
+
+            void resize(const size_type new_size) override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                data_->resize(new_size);
+            }
+
+            void reserve(const size_type new_capacity) override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                data_->reserve(new_capacity);
+            }
+
+            void push_back(const u8 value) override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                data_->push_back(value);
+            }
+
+            void append(const u8 *bytes, const size_type count) override {
+                if (data_ == nullptr) {
+                    throw std::runtime_error("BorrowedVectorBackend: data_ is null");
+                }
+                data_->insert(data_->end(), bytes, bytes + count);
+            }
+
+        private:
+            std::vector<u8> *data_;
         };
 
         class UniqueArrayBackend final : public Backend {

@@ -32,7 +32,7 @@ namespace IO {
         virtual std::vector<uint8> read(size_t size);
 
         template<typename T>
-            requires std::is_trivially_copyable_v<T> && std::is_trivial_v<T>
+            requires std::is_trivially_copyable_v<T>
         std::vector<T> read_exact(size_t size) {
             std::vector<T> data(size);
             read_exact(data);
@@ -40,7 +40,7 @@ namespace IO {
         }
 
         template<typename T>
-            requires std::is_trivially_copyable_v<T> && std::is_trivial_v<T>
+            requires std::is_trivially_copyable_v<T>
         void read_exact(std::vector<T> &data) {
             const size_t bytesRead = read(data.data(), data.size() * sizeof(T));
             if (bytesRead < data.size() * sizeof(T)) {
@@ -49,7 +49,7 @@ namespace IO {
         }
 
         template<typename T>
-            requires std::is_trivially_copyable_v<T> && std::is_trivial_v<T> && (!std::is_const_v<T>)
+            requires std::is_trivially_copyable_v<T> && (!std::is_const_v<T>)
         void read_exact(std::span<T> data) {
             const size_t bytesRead = read(data.data(), data.size() * sizeof(T));
             if (bytesRead < data.size() * sizeof(T)) {
@@ -64,7 +64,7 @@ namespace IO {
         virtual size_t skip(uint32 size) = 0;
 
         template<typename T>
-            requires std::is_trivially_copyable_v<T> && std::is_trivial_v<T>
+            requires std::is_trivially_copyable_v<T>
         T read_pod() {
             T value;
             if (const size_t bytesRead = read(&value, sizeof(T)); bytesRead < sizeof(T)) {
@@ -81,7 +81,7 @@ namespace IO {
         virtual void read_string(uint32 size, std::string &str);
 
         template<typename T>
-            requires std::is_trivially_copyable_v<T> && std::is_trivial_v<T>
+            requires std::is_trivially_copyable_v<T>
         void write(T data) {
             const size_t bytesWritten = write(&data, sizeof(T));
             if (bytesWritten < sizeof(T)) {
@@ -90,6 +90,7 @@ namespace IO {
         }
 
         virtual std::span<const uint8> cbuffer() = 0;
+
         // virtual std::span<uint8> buffer() = 0;
     };
 

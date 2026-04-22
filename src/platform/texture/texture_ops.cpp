@@ -1,13 +1,14 @@
 // Crutils/buffereated by RED on 14.01.2026.
 
-#include "redscore/platform/texture_ops.h"
 
 #include <cassert>
 #include <memory>
 
+#include "redscore/platform/texture/texture_ops.h"
 #include "redscore/platform/logger.h"
 
-std::unique_ptr<Texture> multiply_4c_by_1c(const Texture* a, const Texture* b) {
+
+std::unique_ptr<Texture> multiply_4c_by_1c(const Texture *a, const Texture *b) {
     // Fast path
     if (a->width() == b->width() && a->height() == b->height()) {
         const uint32 pixel_count = a->width() * a->height();
@@ -25,23 +26,26 @@ std::unique_ptr<Texture> multiply_4c_by_1c(const Texture* a, const Texture* b) {
                     const uint8 res_value = (uint8) ((uint16) a_value * (uint16) b_value / 255);
                     result_data[i * result_pixel_size + c] = res_value;
                 } else if (a->bpc() == 2) {
-                    const uint16 a_value = reinterpret_cast<const uint16*>(a->data().data())[i * a->channel_count() + c];
-                    const uint16 b_value = reinterpret_cast<const uint16*>(b->data().data())[i * b->channel_count() + 0];
+                    const uint16 a_value = reinterpret_cast<const uint16 *>(a->data().data())[
+                        i * a->channel_count() + c];
+                    const uint16 b_value = reinterpret_cast<const uint16 *>(b->data().data())[
+                        i * b->channel_count() + 0];
                     const uint16 res_value = (uint16) ((uint32) a_value * (uint32) b_value / 65535);
-                    reinterpret_cast<uint16*>(result_data.data())[i * 4 + c] = res_value;
+                    reinterpret_cast<uint16 *>(result_data.data())[i * 4 + c] = res_value;
                 } else {
                     assert(false && "Unsupported bpc in multiply_4c_by_1c");
                 }
             }
         }
-        return std::make_unique<Texture>(a->width(), a->height(), a->depth(), a->bpc(), 4, a->is_float(), std::move(result_data));
+        return std::make_unique<Texture>(a->width(), a->height(), a->depth(), a->bpc(), 4, a->is_float(),
+                                         std::move(result_data));
     }
     // Slow path for textures where resolution differs by factor of 2, aspect ratio must match
     float aspect_a = (float) a->width() / (float) a->height();
     float aspect_b = (float) b->width() / (float) b->height();
     if (aspect_a == aspect_b) {
-        const Texture* hires = a->width() > b->width() ? a : b;
-        const Texture* lowres = a->width() > b->width() ? b : a;
+        const Texture *hires = a->width() > b->width() ? a : b;
+        const Texture *lowres = a->width() > b->width() ? b : a;
         const uint32 scale_factor = hires->width() / lowres->width();
         if (hires->width() == lowres->width() * scale_factor &&
             hires->height() == lowres->height() * scale_factor) {
@@ -61,30 +65,40 @@ std::unique_ptr<Texture> multiply_4c_by_1c(const Texture* a, const Texture* b) {
 
                     for (uint32 c = 0; c < 4; ++c) {
                         if (hires->bpc() == 1) {
-                            const uint8 a_value = hires->data()[hires_index * hires_pixel_size + c];
-                            const uint8 b_value = lowres->data()[lowres_index * lowres_pixel_size + 0];
+                            uint8 a_value;
+                            uint8 b_value;
+                            if (hires->channel_count() == 4) {
+                                a_value = hires->data()[hires_index * hires_pixel_size + c];
+                                b_value = lowres->data()[lowres_index * lowres_pixel_size + 0];
+                            } else {
+                                a_value = hires->data()[hires_index * hires_pixel_size + 0];
+                                b_value = lowres->data()[lowres_index * lowres_pixel_size + c];
+                            }
                             const uint8 res_value = (uint8) ((uint16) a_value * (uint16) b_value / 255);
                             result_data[hires_index * result_pixel_size + c] = res_value;
                         } else if (hires->bpc() == 2) {
-                            const uint16 a_value = reinterpret_cast<const uint16*>(hires->data().data())[hires_index * hires->channel_count() + c];
-                            const uint16 b_value = reinterpret_cast<const uint16*>(lowres->data().data())[lowres_index * lowres->channel_count() + 0];
+                            const uint16 a_value = reinterpret_cast<const uint16 *>(hires->data().data())[
+                                hires_index * hires->channel_count() + c];
+                            const uint16 b_value = reinterpret_cast<const uint16 *>(lowres->data().data())[
+                                lowres_index * lowres->channel_count() + 0];
                             const uint16 res_value = (uint16) ((uint32) a_value * (uint32) b_value / 65535);
-                            reinterpret_cast<uint16*>(result_data.data())[hires_index * 4 + c] = res_value;
+                            reinterpret_cast<uint16 *>(result_data.data())[hires_index * 4 + c] = res_value;
                         } else {
                             assert(false && "Unsupported bpc in multiply_4c_by_1c");
                         }
                     }
                 }
             }
-            return std::make_unique<Texture>(hires->width(), hires->height(), hires->depth(), hires->bpc(), 4, hires->is_float(), std::move(result_data));
+            return std::make_unique<Texture>(hires->width(), hires->height(), hires->depth(), hires->bpc(), 4,
+                                             hires->is_float(), std::move(result_data));
         }
     }
     GLog_Error("Unsupported texture multiplication due to mismatched resolutions and aspect ratio: %dx%d x %dx%d",
-        a->width(), a->height(), b->width(), b->height());
+               a->width(), a->height(), b->width(), b->height());
     return nullptr;
 }
 
-std::unique_ptr<Texture> multiply_3c_by_1c(const Texture* a, const Texture* b) {
+std::unique_ptr<Texture> multiply_3c_by_1c(const Texture *a, const Texture *b) {
     // Fast path
     if (a->width() == b->width() && a->height() == b->height()) {
         const uint32 pixel_count = a->width() * a->height();
@@ -102,23 +116,26 @@ std::unique_ptr<Texture> multiply_3c_by_1c(const Texture* a, const Texture* b) {
                     const uint8 res_value = (uint8) ((uint16) a_value * (uint16) b_value / 255);
                     result_data[i * result_pixel_size + c] = res_value;
                 } else if (a->bpc() == 2) {
-                    const uint16 a_value = reinterpret_cast<const uint16*>(a->data().data())[i * a->channel_count() + c];
-                    const uint16 b_value = reinterpret_cast<const uint16*>(b->data().data())[i * b->channel_count() + 0];
+                    const uint16 a_value = reinterpret_cast<const uint16 *>(a->data().data())[
+                        i * a->channel_count() + c];
+                    const uint16 b_value = reinterpret_cast<const uint16 *>(b->data().data())[
+                        i * b->channel_count() + 0];
                     const uint16 res_value = (uint16) ((uint32) a_value * (uint32) b_value / 65535);
-                    reinterpret_cast<uint16*>(result_data.data())[i * 3 + c] = res_value;
+                    reinterpret_cast<uint16 *>(result_data.data())[i * 3 + c] = res_value;
                 } else {
                     assert(false && "Unsupported bpc in multiply_3c_by_1c");
                 }
             }
         }
-        return std::make_unique<Texture>(a->width(), a->height(), a->depth(), a->bpc(), 3, a->is_float(), std::move(result_data));
+        return std::make_unique<Texture>(a->width(), a->height(), a->depth(), a->bpc(), 3, a->is_float(),
+                                         std::move(result_data));
     }
     // Slow path for textures where resolution differs by factor of 2, aspect ratio must match
     float aspect_a = (float) a->width() / (float) a->height();
     float aspect_b = (float) b->width() / (float) b->height();
     if (aspect_a == aspect_b) {
-        const Texture* hires = a->width() > b->width() ? a : b;
-        const Texture* lowres = a->width() > b->width() ? b : a;
+        const Texture *hires = a->width() > b->width() ? a : b;
+        const Texture *lowres = a->width() > b->width() ? b : a;
         const uint32 scale_factor = hires->width() / lowres->width();
 
         if (hires->width() == lowres->width() * scale_factor &&
@@ -144,33 +161,36 @@ std::unique_ptr<Texture> multiply_3c_by_1c(const Texture* a, const Texture* b) {
                             const uint8 res_value = (uint8) ((uint16) a_value * (uint16) b_value / 255);
                             result_data[hires_index * result_pixel_size + c] = res_value;
                         } else if (hires->bpc() == 2) {
-                            const uint16 a_value = reinterpret_cast<const uint16*>(hires->data().data())[hires_index * hires->channel_count() + c];
-                            const uint16 b_value = reinterpret_cast<const uint16*>(lowres->data().data())[lowres_index * lowres->channel_count() + 0];
+                            const uint16 a_value = reinterpret_cast<const uint16 *>(hires->data().data())[
+                                hires_index * hires->channel_count() + c];
+                            const uint16 b_value = reinterpret_cast<const uint16 *>(lowres->data().data())[
+                                lowres_index * lowres->channel_count() + 0];
                             const uint16 res_value = (uint16) ((uint32) a_value * (uint32) b_value / 65535);
-                            reinterpret_cast<uint16*>(result_data.data())[hires_index * 3 + c] = res_value;
+                            reinterpret_cast<uint16 *>(result_data.data())[hires_index * 3 + c] = res_value;
                         } else {
                             assert(false && "Unsupported bpc in multiply_3c_by_1c");
                         }
                     }
                 }
             }
-            return std::make_unique<Texture>(hires->width(), hires->height(), hires->depth(), hires->bpc(), 3, hires->is_float(), std::move(result_data));
+            return std::make_unique<Texture>(hires->width(), hires->height(), hires->depth(), hires->bpc(), 3,
+                                             hires->is_float(), std::move(result_data));
         }
     }
     GLog_Error("Unsupported texture multiplication due to mismatched resolutions and aspect ratio: %dx%d x %dx%d",
-        a->width(), a->height(), b->width(), b->height());
+               a->width(), a->height(), b->width(), b->height());
     return nullptr;
 }
 
-std::unique_ptr<Texture> TextureOps::multiply(const Texture* texture_a, const Texture* texture_b) {
+std::unique_ptr<Texture> TextureOps::multiply(const Texture *texture_a, const Texture *texture_b) {
     if (texture_a->bpc() != texture_b->bpc() ||
         texture_a->is_float() != texture_b->is_float() ||
         texture_a->depth() != texture_b->depth()) {
         GLog_Error("Unsupported texture multiplication due to mismatched properties");
         return nullptr;
     }
-    const Texture* tex_a = texture_a->channel_count() > texture_b->channel_count() ? texture_a : texture_b;
-    const Texture* tex_b = texture_a->channel_count() > texture_b->channel_count() ? texture_b : texture_a;
+    const Texture *tex_a = texture_a->channel_count() > texture_b->channel_count() ? texture_a : texture_b;
+    const Texture *tex_b = texture_a->channel_count() > texture_b->channel_count() ? texture_b : texture_a;
 
     if (tex_a->channel_count() == 4 && tex_b->channel_count() == 1) {
         return multiply_4c_by_1c(tex_a, tex_b);
@@ -180,6 +200,6 @@ std::unique_ptr<Texture> TextureOps::multiply(const Texture* texture_a, const Te
     }
 
     GLog_Error("Unsupported texture multiplication channel counts: %d x %d",
-           texture_a->channel_count(), texture_b->channel_count());
+               texture_a->channel_count(), texture_b->channel_count());
     return nullptr;
 }

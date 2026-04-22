@@ -102,6 +102,14 @@ public:
 
     GltfHelper();
 
+    GltfHelper(const GltfHelper &other) = delete;
+
+    GltfHelper(GltfHelper &&other) noexcept = delete;
+
+    GltfHelper & operator=(const GltfHelper &other) = delete;
+
+    GltfHelper & operator=(GltfHelper &&other) noexcept = delete;
+
     template<typename T>
     Handle<T> make();
 
@@ -119,7 +127,7 @@ public:
 
     int32 create_primitive(int32 mesh_id, int mode = TINYGLTF_MODE_TRIANGLES);
 
-    Handle<tinygltf::Buffer> create_buffer(const std::span<const u8> &data, std::string_view name="");
+    Handle<tinygltf::Buffer> create_buffer(const std::span<const u8> &data, std::string_view name = "");
 
     Handle<tinygltf::Accessor> create_accessor(
         const uint8 *data,
@@ -161,7 +169,7 @@ public:
 
 
     Handle<tinygltf::Accessor> set_primitive_attribute(
-        tinygltf::Primitive& prim,
+        tinygltf::Primitive &prim,
         const std::string &attribute_name,
         const uint8 *data,
         size_t byte_length,
@@ -175,7 +183,7 @@ public:
     );
 
     Handle<tinygltf::Accessor> set_primitive_indices(
-        tinygltf::Primitive& prim,
+        tinygltf::Primitive &prim,
         const uint8 *data,
         size_t byte_length,
         int component_type,
@@ -202,7 +210,7 @@ public:
 
     void add_extra_save_data(const std::string &name, const std::vector<uint8> &&data);
 
-    void add_to_scene(Handle<tinygltf::Node> node);
+    void add_to_scene(const Handle<tinygltf::Node>& node);
 
     [[nodiscard]] Handle<tinygltf::Node> get_parent(const Handle<tinygltf::Node> &child);
 
@@ -244,7 +252,33 @@ private:
         return {&m_model.STORAGE, index};\
     }
 
-MAKE_FUNCTIONS(tinygltf::Node, nodes)
+template<>
+inline GltfHelper::Handle<tinygltf::Node> GltfHelper::make<tinygltf::Node>() {
+    if (m_model.nodes.size() > std::numeric_limits<int32>::max()) {
+        throw std::runtime_error("tinygltf::Node" " count exceeds int32 limit");
+    }
+    auto &obj = m_model.nodes.emplace_back();
+    auto index = (m_model.nodes.size() - 1);
+    return {&m_model.nodes, (int32) index};
+}
+
+template<>
+inline GltfHelper::Handle<tinygltf::Node> GltfHelper::find<tinygltf::Node>(const std::string_view name) {
+    for (size_t i = 0; i < m_model.nodes.size(); i++) {
+        if (m_model.nodes[i].name == name) { return {&m_model.nodes, (int32) i}; }
+    }
+    return {};
+}
+
+template<>
+inline GltfHelper::Handle<tinygltf::Node> GltfHelper::get(int32 index) {
+    if (index < 0 || index >= m_model.nodes.size()) {
+        GLog_Warning("Index out of range");
+        return {};
+    }
+    return {&m_model.nodes, index};
+}
+
 MAKE_FUNCTIONS(tinygltf::Mesh, meshes)
 MAKE_FUNCTIONS(tinygltf::Accessor, accessors)
 MAKE_FUNCTIONS(tinygltf::Buffer, buffers)

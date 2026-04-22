@@ -59,7 +59,7 @@ protected:
     std::unordered_map<uint64, std::unique_ptr<Archive> > m_archives;
     load_archive_callback m_load_archive;
 
-    static constexpr size_t MAX_DYNAMIC_MOUNTS = 16;
+    static constexpr size_t MAX_DYNAMIC_MOUNTS = 32;
 
     void touch_dynamic_mount(uint64 hash);
 

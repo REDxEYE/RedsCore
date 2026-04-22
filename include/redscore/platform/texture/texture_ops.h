@@ -2,7 +2,7 @@
 
 #pragma once
 #include <memory>
-#include "texture.h"
+#include "redscore/platform/texture/texture.h"
 
 namespace TextureOps {
     std::unique_ptr<Texture> multiply(const Texture *texture_a, const Texture *texture_b);

@@ -1,14 +1,17 @@
 // Created by RED on 30.09.2025.
 
-#include "redscore/platform/texture.h"
+#include "redscore/platform/texture/texture.h"
 #include "redscore/bcdec.h"
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <filesystem>
 
 #include "library.h"
 #include "tracy/Tracy.hpp"
 #include "redscore/platform/logger.h"
+#include "redscore/platform/file/native_file.h"
+#include "redscore/platform/texture/writers/dds_writer.hpp"
 // #include "redscore/utils/stb_image_write.h"
 
 
@@ -21,8 +24,7 @@ float32 float16_to_float32(uint16 v) {
         if (mantissa == 0) {
             // Zero
             return *(float32 *) &sign;
-        }
-        else {
+        } else {
             // Subnormal number
             while ((mantissa & 0x0400) == 0) {
                 mantissa <<= 1;
@@ -31,8 +33,7 @@ float32 float16_to_float32(uint16 v) {
             exponent++;
             mantissa &= ~0x0400;
         }
-    }
-    else if (exponent == 31) {
+    } else if (exponent == 31) {
         uint32 tmp = (sign | 0x7F800000 | (mantissa << 13));
         // Inf or NaN
         return *(float32 *) &tmp;
@@ -393,6 +394,55 @@ Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, in
             }
             break;
         }
+        case DDSDXGIFormat::DXGI_FORMAT_R11G11B10_FLOAT: {
+            bpc = 4;
+            channels = 4;
+            decoded_data.resize(width * height * 4 * sizeof(f32));
+            is_float=true;
+            const auto* input = data.data();
+            auto* output = reinterpret_cast<float*>(decoded_data.data());
+
+            auto decode_ufloat = [](uint32_t v, int mant_bits) -> float {
+                const uint32_t exp_bits = 5;
+                const uint32_t exp_mask = (1u << exp_bits) - 1u;
+                const uint32_t mant_mask = (1u << mant_bits) - 1u;
+                const int bias = 15;
+
+                const uint32_t mant = v & mant_mask;
+                const uint32_t exp = (v >> mant_bits) & exp_mask;
+
+                if (exp == 0) {
+                    if (mant == 0)
+                        return 0.0f;
+                    return std::ldexp(static_cast<float>(mant), 1 - bias - mant_bits);
+                }
+
+                if (exp == exp_mask) {
+                    if (mant == 0)
+                        return std::numeric_limits<float>::infinity();
+                    return std::numeric_limits<float>::quiet_NaN();
+                }
+
+                return std::ldexp(1.0f + static_cast<float>(mant) / static_cast<float>(1u << mant_bits), static_cast<int>(exp) - bias);
+            };
+
+
+            for (int i = 0; i < width * height; ++i) {
+                uint32_t packed;
+                std::memcpy(&packed, input + i * 4, sizeof(uint32_t));
+
+                const uint32_t r = (packed >> 0)  & 0x7FF;
+                const uint32_t g = (packed >> 11) & 0x7FF;
+                const uint32_t b = (packed >> 22) & 0x3FF;
+
+                output[i * 4 + 0] = decode_ufloat(r, 6);
+                output[i * 4 + 1] = decode_ufloat(g, 6);
+                output[i * 4 + 2] = decode_ufloat(b, 5);
+                output[i * 4 + 4] = 1.0f;
+            }
+
+            break;
+        }
         case DDSDXGIFormat::DXGI_FORMAT_CUSTOM_R8G8B8_UNORM: {
             bpc = 1;
             channels = 3;
@@ -401,6 +451,10 @@ Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, in
         }
         case DDSDXGIFormat::DXGI_FORMAT_FORCE_UINT32: {
             throw std::runtime_error("Unsupported format: DXGI_FORMAT_FORCE_UINT32");
+        }
+        default: {
+            GLog_Error("Unsupported pixel format {}", format);
+            throw std::runtime_error("Unsupported pixel format");
         }
     }
 
@@ -411,36 +465,35 @@ Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, in
 void Texture::save(const std::filesystem::path &path_without_ext) const {
     ZoneScoped
     if (m_is_float) {
-        std::vector<float32> float_data(m_width * m_height * m_depth * m_channel_count);
+        IO::Buffer image_buffer(m_width * m_height * m_depth * m_channel_count * sizeof(f32));
+        auto float_buffer = image_buffer.writable_view_as<f32>();
         if (m_bpc == 2) {
             const auto *src = reinterpret_cast<const uint16 *>(m_data.data());
-            float32 *dst = float_data.data();
             const int pixel_count = m_width * m_height * m_depth * m_channel_count;
             for (int i = 0; i < pixel_count; ++i) {
-                dst[i] = float16_to_float32(src[i]);
+                float_buffer[i] = float16_to_float32(src[i]);
             }
-        }
-        else if (m_bpc == 4) {
+        } else if (m_bpc == 4) {
             const auto *src = reinterpret_cast<const float32 *>(m_data.data());
             const int pixel_count = m_width * m_height * m_depth * m_channel_count;
-            std::copy_n(src, pixel_count, float_data.data());
-        }
-        else {
+            std::copy_n(src, pixel_count, float_buffer.data());
+        } else {
             GLog_Error("Unsupported bpc for float texture: %d", m_bpc);
             throw std::runtime_error(std::format("Unsupported bpc({}) for float texture", m_bpc));
         }
         std::filesystem::path output_path = path_without_ext;
-        output_path += ".hdr";
-        throw std::runtime_error("HDR not supported yet");
+        output_path += ".dds";
+        IO::FilePtr file = IO::open_file_write(output_path);
+        DDS::write(file, image_buffer, m_width, m_height, m_depth, 4, m_channel_count, true);
+        // throw std::runtime_error("HDR not supported yet");
         // stbi_write_hdr(output_path.string().c_str(), m_width, m_height, m_channel_count, float_data.data());
-    }
-    else {
+    } else {
         if (m_bpc != 1) {
-            GLog_Error("Unsupported bpc for non-float texture: %d", m_bpc);
+            GLog_Error("Unsupported bpc for non-float texture: {}", m_bpc);
             throw std::runtime_error(std::format("Unsupported bpc({}) for non-float texture", m_bpc));
         }
         if (m_channel_count < 1 || m_channel_count > 4) {
-            GLog_Error("Unsupported channel count for non-float texture: %d", m_channel_count);
+            GLog_Error("Unsupported channel count for non-float texture: {}", m_channel_count);
             throw std::runtime_error(
                 std::format("Unsupported channel count({}) for non-float texture", m_channel_count));
         }
@@ -497,6 +550,11 @@ std::vector<uint8> Texture::save_to_memory(MemoryFormat format) const {
         MemoryFile_free(&memory_file);
 
         return png_data;
+    }
+    if (format == MemoryFormat::DDS) {
+        std::vector<u8> out;
+        DDS::write_to_memory(out, m_data, m_width, m_height, m_depth, m_bpc, m_channel_count, is_float());
+        return out;
     }
     GLog_Error("Unsupported memory format: {}", format);
     throw std::runtime_error(std::format("Unsupported memory format: {}", static_cast<int>(format)));

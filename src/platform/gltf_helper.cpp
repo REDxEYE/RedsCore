@@ -409,7 +409,7 @@ void GltfHelper::add_extra_save_data(const std::string &name, const std::vector<
     m_extra_save_data.emplace_back(name, data);
 }
 
-void GltfHelper::add_to_scene(const Handle<tinygltf::Node> node) {
+void GltfHelper::add_to_scene(const Handle<tinygltf::Node>& node) {
     if (node.index() < 0 || static_cast<size_t>(node.index()) >= m_model.nodes.size()) {
         throw std::runtime_error("Node id is out of range");
     }

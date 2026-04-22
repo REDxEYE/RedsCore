@@ -6,29 +6,60 @@
 
 #include "redscore/platform/logger.h"
 
-void IO::MemoryFile::set_position(const std::streamoff position, const std::ios::seekdir origin) {
-    std::streamoff new_position = 0;
+void common_set_position(std::streamoff &position, const std::streamoff new_position, std::streamsize buffer_size,
+                         const std::ios::seekdir origin) {
     switch (origin) {
         case std::ios::beg:
             if (position < 0) return;
-            new_position = position;
+            position = new_position;
             break;
         case std::ios::cur:
-            if (position < 0 && (-position) > m_position) return;
-            if (m_position + position > m_data.size()) return;
-            new_position = m_position + position;
+            if (position < 0 && (-position) > position) return;
+            if (position + new_position > buffer_size) return;
+            position += new_position;
             break;
         case std::ios::end:
-            if (position < 0 && (-position) > m_data.size()) return;
-            new_position = m_data.size() + position;
+            if (position < 0 && (-position) > buffer_size) return;
+            position = buffer_size + new_position;
             break;
         default:
-            return; // Invalid seek direction
+            throw std::runtime_error("Invalid seek dir");
     }
-    if (new_position > m_data.size()) {
-        return;
+}
+
+size_t common_read(const std::span<const u8> &buffer, std::streamoff &position, void *dst, const std::streamsize size) {
+    if (size == 0) {
+        return 0;
     }
-    m_position = new_position;
+
+    if (position + size > buffer.size()) {
+        throw std::runtime_error("Attempt to read beyond end of buffer");
+    }
+    std::memcpy(dst, buffer.data() + position, size);
+    position += size;
+    return size;
+}
+
+size_t common_write(IO::Buffer *buffer, std::streamoff &position, const void *src, const std::streamsize size) {
+    if (size == 0) {
+        return 0;
+    }
+    if (position + size > buffer->size()) {
+        if (!buffer->is_expandable()) {
+        throw std::runtime_error("Not enough to remaining in buffer and buffer does not support resizing");
+
+        }
+        buffer->resize(position + size);
+    }
+
+    std::memcpy(buffer->data() + position, src, size);
+    position += size;
+    return size;
+}
+
+
+void IO::MemoryFile::set_position(const std::streamoff position, const std::ios::seekdir origin) {
+    common_set_position(m_position, position, m_data.size(), origin);
 }
 
 std::streamsize IO::MemoryFile::get_position() {
@@ -36,27 +67,11 @@ std::streamsize IO::MemoryFile::get_position() {
 }
 
 size_t IO::MemoryFile::read(void *dst, const std::streamsize size) {
-    if (m_position + size > m_data.size()) {
-        throw std::runtime_error("Attempt to read beyond end of buffer");
-    }
-
-    if (size == 0) {
-        return 0;
-    }
-
-    std::memcpy(dst, m_data.data() + m_position, size);
-    m_position += size;
-    return size;
+    return common_read(m_data, m_position, dst, size);
 }
 
 size_t IO::MemoryFile::write(const void *src, const std::streamsize size) {
-    if (m_position + size > m_data.size()) {
-        m_data.resize(m_position + size);
-    }
-
-    memcpy(m_data.data() + m_position, src, size);
-    m_position += size;
-    return size;
+    return common_write(&m_data, m_position, src, size);
 }
 
 size_t IO::MemoryFile::get_size() {
@@ -91,33 +106,12 @@ std::span<const uint8> IO::MemoryFile::cbuffer() {
     return {m_data.data(), m_data.size()};
 }
 
-void IO::MemoryFile::resize(size_t new_size) {
+void IO::MemoryFile::resize(const size_t new_size) {
     m_data.resize(new_size);
 }
 
 void IO::MemoryViewFile::set_position(const std::streamoff position, const std::ios::seekdir origin) {
-    std::streamoff new_position = 0;
-    switch (origin) {
-        case std::ios::beg:
-            if (position < 0) return;
-            new_position = position;
-            break;
-        case std::ios::cur:
-            if (position < 0 && (-position) > m_data.size()) return;
-            if (m_position + position > m_data.size()) return;
-            new_position = m_position + position;
-            break;
-        case std::ios::end:
-            if (position < 0 && (-position) > m_data.size()) return;
-            new_position = m_data.size() + position;
-            break;
-        default:
-            return; // Invalid seek direction
-    }
-    if (new_position > m_data.size()) {
-        return;
-    }
-    m_position = new_position;
+    common_set_position(m_position, position, m_data.size(), origin);
 }
 
 std::streamsize IO::MemoryViewFile::get_position() {
@@ -125,17 +119,7 @@ std::streamsize IO::MemoryViewFile::get_position() {
 }
 
 size_t IO::MemoryViewFile::read(void *dst, const std::streamsize size) {
-    if (m_position + size > m_data.size()) {
-        throw std::runtime_error("Attempt to read beyond end of buffer");
-    }
-
-    if (size == 0) {
-        return 0;
-    }
-
-    memcpy(dst, m_data.data() + m_position, size);
-    m_position += size;
-    return size;
+    return common_read(m_data, m_position, dst, size);
 }
 
 size_t IO::MemoryViewFile::write(const void *src, std::streamsize size) {
@@ -161,4 +145,45 @@ size_t IO::MemoryViewFile::skip(const uint32 size) {
 
 std::span<const uint8> IO::MemoryViewFile::cbuffer() {
     return {m_data.data(), m_data.size()};
+}
+
+void IO::ExternalMemoryBufferFile::set_position(const std::streamoff position, const std::ios::seekdir origin) {
+    common_set_position(m_position, position, m_buffer.size(), origin);
+}
+
+std::streamsize IO::ExternalMemoryBufferFile::get_position() {
+    return m_position;
+}
+
+size_t IO::ExternalMemoryBufferFile::read(void *dst, std::streamsize size) {
+    return common_read(m_buffer.as_span(), m_position, dst, size);
+}
+
+size_t IO::ExternalMemoryBufferFile::write(const void *src, std::streamsize size) {
+    if (m_position + size > m_buffer.size() && m_buffer.is_expandable()) {
+        m_buffer.resize(m_position + size);
+    }
+    return common_write(&m_buffer, m_position, src, size);
+}
+
+size_t IO::ExternalMemoryBufferFile::get_size() {
+    return m_buffer.size();
+}
+
+void IO::ExternalMemoryBufferFile::close() {
+}
+
+size_t IO::ExternalMemoryBufferFile::skip(const uint32 size) {
+    if (m_position + size) {
+        if (!m_buffer.is_expandable()) {
+            throw std::runtime_error("Trying to skip past unresizable buffer size");
+        }
+        m_buffer.resize(m_position + size);
+    }
+    m_position+=size;
+    return m_position;
+}
+
+std::span<const uint8> IO::ExternalMemoryBufferFile::cbuffer() {
+    return m_buffer.as_span();
 }

@@ -99,4 +99,38 @@ namespace IO {
         std::streamsize m_position{0};
         ConstByteBufferView m_data;
     };
+
+    class ExternalMemoryBufferFile: public File {
+    public:
+        explicit ExternalMemoryBufferFile(std::vector<u8>* buffer) {
+            m_buffer = Buffer::wrap_borrowed(buffer);
+        }
+
+        void set_position(std::streamoff position, std::ios::seekdir origin) override;
+
+        std::streamsize get_position() override;
+
+        size_t read(void *dst, std::streamsize size) override;
+
+        size_t write(const void *src, std::streamsize size) override;
+
+        size_t get_size() override;
+
+        void close() override;
+
+        size_t skip(uint32 size) override;
+
+        std::span<const uint8> cbuffer() override;
+
+    private:
+        std::streamsize m_position{0};
+        Buffer m_buffer;
+    };
+
+    inline FilePtr memory_file_from_vector(std::vector<u8>* data) {
+        return std::move(std::make_unique<ExternalMemoryBufferFile>(data));
+    }
+    inline FilePtr memory_file(u64 size = 0) {
+        return std::move(std::make_unique<MemoryFile>(size));
+    }
 }

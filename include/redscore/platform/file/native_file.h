@@ -87,4 +87,7 @@ namespace IO {
     inline FilePtr open_file(const std::filesystem::path& path){
         return std::make_unique<NativeFile>(path);
     }
+    inline FilePtr open_file_write(const std::filesystem::path& path){
+        return std::make_unique<WritableNativeFile>(path);
+    }
 }

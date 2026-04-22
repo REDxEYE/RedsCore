@@ -11,8 +11,9 @@ add_library(RedsCore STATIC
         src/platform/archive_manager.cpp
         src/platform/gltf_helper.cpp
         src/platform/logger.cpp
-        src/platform/texture.cpp
-        src/platform/texture_ops.cpp
+        src/platform/texture/texture.cpp
+        src/platform/texture/texture_ops.cpp
+        src/platform/texture/writers/dds_writer.cpp
         src/platform/file/file.cpp
         src/platform/file/memory_file.cpp
         src/platform/file/native_file.cpp
@@ -21,7 +22,6 @@ add_library(RedsCore STATIC
         src/utils/memory_debugger.cpp
         src/utils/simple_fileio.cpp
         src/utils/compression.cpp
-        include/redscore/utils/png.hpp
 )
 target_include_directories(RedsCore PUBLIC include)
 target_link_libraries(RedsCore PUBLIC tinygltf glm::glm tinycpng-static Tracy::TracyClient zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)
