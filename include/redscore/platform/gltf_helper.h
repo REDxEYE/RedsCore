@@ -252,33 +252,7 @@ private:
         return {&m_model.STORAGE, index};\
     }
 
-template<>
-inline GltfHelper::Handle<tinygltf::Node> GltfHelper::make<tinygltf::Node>() {
-    if (m_model.nodes.size() > std::numeric_limits<int32>::max()) {
-        throw std::runtime_error("tinygltf::Node" " count exceeds int32 limit");
-    }
-    auto &obj = m_model.nodes.emplace_back();
-    auto index = (m_model.nodes.size() - 1);
-    return {&m_model.nodes, (int32) index};
-}
-
-template<>
-inline GltfHelper::Handle<tinygltf::Node> GltfHelper::find<tinygltf::Node>(const std::string_view name) {
-    for (size_t i = 0; i < m_model.nodes.size(); i++) {
-        if (m_model.nodes[i].name == name) { return {&m_model.nodes, (int32) i}; }
-    }
-    return {};
-}
-
-template<>
-inline GltfHelper::Handle<tinygltf::Node> GltfHelper::get(int32 index) {
-    if (index < 0 || index >= m_model.nodes.size()) {
-        GLog_Warning("Index out of range");
-        return {};
-    }
-    return {&m_model.nodes, index};
-}
-
+MAKE_FUNCTIONS(tinygltf::Node, nodes)
 MAKE_FUNCTIONS(tinygltf::Mesh, meshes)
 MAKE_FUNCTIONS(tinygltf::Accessor, accessors)
 MAKE_FUNCTIONS(tinygltf::Buffer, buffers)

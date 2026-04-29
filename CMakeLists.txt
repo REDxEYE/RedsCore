@@ -24,7 +24,8 @@ add_library(RedsCore STATIC
         src/utils/compression.cpp
 )
 target_include_directories(RedsCore PUBLIC include)
-target_link_libraries(RedsCore PUBLIC tinygltf glm::glm tinycpng-static Tracy::TracyClient zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)
+target_link_libraries(RedsCore PUBLIC Tracy::TracyClient tinygltf glm::glm tinycpng-static zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)
+target_compile_definitions(RedsCore PRIVATE TRACY_MEMORY TRACY_ON_DEMAND)
 
 add_executable(ToolRunner src/ToolRunner.cpp)
 target_link_libraries(ToolRunner PUBLIC RedsCore)
