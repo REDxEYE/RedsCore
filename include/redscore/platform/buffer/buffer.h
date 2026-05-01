@@ -1,6 +1,7 @@
 // Created by RED on 11.03.2026.
 #pragma once
 
+#include <cstdint>
 #include <algorithm>
 #include <cstddef>
 #include <initializer_list>
