@@ -1,12 +1,12 @@
 // Created by RED on 08.03.2026.
 #pragma once
 #include <limits>
-#include <optional>
 #include <stdexcept>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include "redscore/int_def.h"
-#include "tiny_gltf.h"
+#include "redscore/gltf/tiny_gltf.h"
 #include "redscore/platform/logger.h"
 
 #include "glm/glm.hpp"
@@ -201,6 +201,16 @@ public:
 
     void reset();
 
+    void add_extension(const std::string& name, bool required);
+
+    void save(const std::filesystem::path& path, bool separate_binary = true);
+
+    void set_shared_bin_folder(const std::string& path);
+
+    bool has_shared_bin_folder() const;
+
+    const std::string& shared_bin_folder();
+
     static void set_node_matrix(const Handle<tinygltf::Node> &node, const glm::mat4 &mat);
 
     static void set_node_transform(const Handle<tinygltf::Node> &node,
@@ -220,6 +230,7 @@ public:
 
 private:
     tinygltf::Model m_model{};
+    std::string m_shared_bin_path{};
     std::vector<Handle<tinygltf::Skin> > m_skin_stack;
     std::vector<DataBlob> m_extra_save_data;
 };

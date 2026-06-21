@@ -74,7 +74,7 @@ namespace IO {
         explicit MemoryViewFile(const uint8 *data, const size_t size) : m_data(data, size) {
         }
 
-        explicit MemoryViewFile(ConstByteBufferView data):m_data(data){};
+        explicit MemoryViewFile(const ConstByteBufferView data):m_data(data){};
 
         explicit MemoryViewFile(const std::span<const uint8> data) : m_data(data.data(), data.size()) {
         }
@@ -132,5 +132,11 @@ namespace IO {
     }
     inline FilePtr memory_file(u64 size = 0) {
         return std::move(std::make_unique<MemoryFile>(size));
+    }
+    inline FilePtr memory_file(ConstByteBufferView view) {
+        return std::move(std::make_unique<MemoryViewFile>(view));
+    }
+    inline FilePtr memory_file_wrap(Buffer&& buffer) {
+        return std::move(std::make_unique<MemoryFile>(std::move(buffer)));
     }
 }

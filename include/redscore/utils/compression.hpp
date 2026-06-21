@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "redscore/int_def.h"
 #include "redscore/platform/buffer/buffer.h"
 
 std::optional<IO::Buffer>  decompress_zlib(const IO::Buffer& in, u64 decompressed_size, int32 wbits);

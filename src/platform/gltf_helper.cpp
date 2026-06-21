@@ -5,7 +5,9 @@
 #include <algorithm>
 #include <ranges>
 
+#include "redscore/gltf/tiny_gltf.h"
 #include "glm/gtx/matrix_decompose.hpp"
+#include "redscore/utils/simple_fileio.h"
 
 namespace {
     size_t component_size_bytes(const int component_type) {
@@ -99,7 +101,7 @@ int32 GltfHelper::create_primitive(const int32 mesh_id, const int mode) {
 }
 
 GltfHelper::Handle<tinygltf::Buffer> GltfHelper::create_buffer(const std::span<const u8> &data,
-                                                                  const std::string_view name) {
+                                                               const std::string_view name) {
     const auto buffer = make<tinygltf::Buffer>();
     if (!name.empty()) {
         buffer->name = name;
@@ -323,6 +325,85 @@ void GltfHelper::reset() {
     m_model = tinygltf::Model();
 }
 
+void GltfHelper::add_extension(const std::string &name, const bool required) {
+    if (std::ranges::contains(m_model.extensionsUsed, name)) {
+        return;
+    }
+
+    m_model.extensionsUsed.push_back(name);
+    if (required) {
+        m_model.extensionsRequired.push_back(name);
+    }
+}
+
+void GltfHelper::save(const std::filesystem::path &path, const bool separate_binary) {
+    if (has_shared_bin_folder()) {
+        const std::filesystem::path binary_path = path.parent_path() / (m_shared_bin_path);
+        std::filesystem::create_directories(binary_path);
+
+        for (auto &image: m_model.images) {
+            if (image.bufferView != -1) {
+                auto &buffer_view = m_model.bufferViews[image.bufferView];
+                auto &buffer = m_model.buffers[buffer_view.buffer];
+                if (buffer_view.byteOffset == 0 && buffer.data.size() == buffer_view.byteLength) {
+                    auto output_path = binary_path / (image.name + ".png");
+                    write_file(output_path, buffer.data);
+                    buffer.externalBufferSize = buffer.data.size();
+                    buffer.data.clear();
+                    image.bufferView = -1;
+                    image.uri = output_path.string();
+                }
+            }
+        }
+    }
+
+    if (separate_binary) {
+        const std::filesystem::path binary_path = path.parent_path() / (path.stem().string() + "_bin");
+        std::filesystem::create_directories(binary_path);
+
+        for (auto &image: m_model.images) {
+            if (image.bufferView != -1) {
+                auto &buffer_view = m_model.bufferViews[image.bufferView];
+                auto &buffer = m_model.buffers[buffer_view.buffer];
+                if (buffer_view.byteOffset == 0 && buffer.data.size() == buffer_view.byteLength) {
+                    auto output_path = binary_path / (image.name + ".png");
+                    write_file(output_path, buffer.data);
+                    buffer.externalBufferSize = buffer.data.size();
+                    buffer.data.clear();
+                    image.bufferView = -1;
+                    image.uri = output_path.string();
+                }
+            }
+        }
+
+        u32 buffer_id = 0;
+        for (auto &buffer: m_model.buffers) {
+            if (!buffer.data.empty()) {
+                auto output_path = binary_path / std::format("buffer_{}.bin", buffer_id);
+                write_file(output_path, buffer.data);
+                buffer.externalBufferSize = buffer.data.size();
+                buffer.data.clear();
+                buffer.uri = output_path.string();
+            }
+            buffer_id++;
+        }
+    }
+    tinygltf::TinyGLTF writer;
+    writer.WriteGltfSceneToFile(&m_model, path.string(), true, true, true, false);
+}
+
+void GltfHelper::set_shared_bin_folder(const std::string &path) {
+    m_shared_bin_path = path;
+}
+
+bool GltfHelper::has_shared_bin_folder() const {
+    return !m_shared_bin_path.empty();
+}
+
+const std::string &GltfHelper::shared_bin_folder() {
+    return m_shared_bin_path;
+}
+
 bool is_all_zero(const glm::vec3 &v) {
     return glm::length(v) <= glm::epsilon<float>();
 }
@@ -373,7 +454,8 @@ void GltfHelper::set_node_matrix(const Handle<tinygltf::Node> &node, const glm::
     }
 }
 
-void GltfHelper::set_node_transform(const Handle<tinygltf::Node> &node, const glm::vec3 &translation, const glm::vec3 &scale,
+void GltfHelper::set_node_transform(const Handle<tinygltf::Node> &node, const glm::vec3 &translation,
+                                    const glm::vec3 &scale,
                                     const glm::quat &rotation) {
     if (glm::any(glm::isnan(translation))) {
         throw std::runtime_error("Translation is NaN");
@@ -409,13 +491,18 @@ void GltfHelper::add_extra_save_data(const std::string &name, const std::vector<
     m_extra_save_data.emplace_back(name, data);
 }
 
-void GltfHelper::add_to_scene(const Handle<tinygltf::Node>& node) {
+void GltfHelper::add_to_scene(const Handle<tinygltf::Node> &node) {
     if (node.index() < 0 || static_cast<size_t>(node.index()) >= m_model.nodes.size()) {
         throw std::runtime_error("Node id is out of range");
     }
     if (m_model.scenes.empty()) {
         m_model.scenes.emplace_back();
     }
+
+    if (std::ranges::contains(m_model.scenes[0].nodes, node.index())) {
+        return;
+    }
+
     m_model.scenes[0].nodes.push_back(node.index());
 }
 

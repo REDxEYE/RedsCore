@@ -3,6 +3,8 @@
 #pragma once
 
 #include <filesystem>
+#include <generator>
+
 #include "redscore/int_def.h"
 
 bool compare_hashes(const uint32 *a, const uint32 *b);
@@ -20,6 +22,13 @@ uint32 parse_digits_u32(const char *str);
 #define ALIGN_UP(value, alignment) (((value) + (alignment - 1)) & ~(alignment - 1))
 
 void convert_to_wsl(std::filesystem::path &path);
+
+template<typename T>
+auto chain_attributes(auto& r1, auto& r2) -> std::generator<const T&> {
+    for (auto& attr : r1) co_yield attr;
+    for (auto& attr : r2) co_yield attr;
+}
+
 
 namespace path_utils {
     inline std::string_view filename(std::string_view p) {

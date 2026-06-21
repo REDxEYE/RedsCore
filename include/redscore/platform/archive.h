@@ -1,45 +1,28 @@
 // Created by RED on 02.10.2025.
 
 #pragma once
-#include <memory>
+#include "container.h"
+#include "redscore/platform/file/memory_file.h"
 #include <functional>
 
-#include "redscore/int_def.h"
-#include "redscore/platform/file/memory_file.h"
 
-struct ArchiveEntry {
-    uint64 path_hash;
-    uint64 size;
-};
-
-
-class Archive {
+template<typename KeyType>
+class Archive : public Container<KeyType> {
 public:
-    virtual ~Archive() = default;
+    struct ArchiveEntry {
+        KeyType key;
+        uint64 size;
+    };
 
-    [[nodiscard]] virtual bool has_file(std::string_view path) = 0;
+    ~Archive() override = default;
 
-    [[nodiscard]] virtual bool has_file(uint64 hash) = 0;
+    // virtual void all_entries(std::vector<ArchiveEntry> &entries) const = 0;
 
-    virtual std::unique_ptr<IO::File> get_file(std::string_view path) = 0;
+    [[nodiscard]] virtual std::string_view name() const = 0;
 
-    virtual std::unique_ptr<IO::File> get_file(uint64 hash) = 0;
+    [[nodiscard]] virtual const KeyType& key() const = 0;
 
-    virtual void all_entries(std::vector<ArchiveEntry> &entries) const = 0;
+    // virtual uint64 hash() = 0;
 
-    [[nodiscard]] virtual std::string get_name() const = 0;
-
-    virtual uint64 hash() = 0;
-
-    bool foreach_file(const std::function<bool (const ArchiveEntry &)> &callback) const {
-        std::vector<ArchiveEntry> entries;
-        all_entries(entries);
-        for (const auto &entry: entries) {
-            if (!callback(entry)) {
-                break;
-            }
-        }
-        return true;
-    }
+    virtual bool foreach_file(const std::function<bool (const ArchiveEntry &)> &callback) = 0;
 };
-

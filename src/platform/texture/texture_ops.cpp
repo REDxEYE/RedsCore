@@ -6,6 +6,7 @@
 
 #include "redscore/platform/texture/texture_ops.h"
 #include "redscore/platform/logger.h"
+#include "redscore/platform/file/memory_file.h"
 
 
 std::unique_ptr<Texture> multiply_4c_by_1c(const Texture *a, const Texture *b) {
@@ -202,4 +203,71 @@ std::unique_ptr<Texture> TextureOps::multiply(const Texture *texture_a, const Te
     GLog_Error("Unsupported texture multiplication channel counts: %d x %d",
                texture_a->channel_count(), texture_b->channel_count());
     return nullptr;
+}
+
+bool TextureOps::invert_channel(Texture *texture, u32 channel) {
+    if (channel >= texture->channel_count()) {
+        GLog_Error("Invalid channel index for texture inversion: %d (max: %d)", channel, texture->channel_count() - 1);
+        return false;
+    }
+    auto buffer = IO::Buffer::wrap_borrowed(&texture->data());
+    if (texture->bpc() == 1) {
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            buffer[i * texture->channel_count() + channel] = 255 - buffer[i * texture->channel_count() + channel];
+        }
+    } else if (texture->bpc() == 2) {
+        if (texture->is_float()) {
+            GLog_Error("float16 not supported for channel inversion");
+            return false;
+        }
+        const auto u16_buffer = buffer.writable_view_as<u16>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            u16_buffer[i * texture->channel_count() + channel] =
+                    65535 - u16_buffer[i * texture->channel_count() + channel];
+        }
+    } else if (texture->bpc() == 4) {
+        if (texture->is_float()) {
+            const auto f32_buffer = buffer.writable_view_as<f32>();
+            for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+                f32_buffer[i * texture->channel_count() + channel] =
+                        1.0f - f32_buffer[i * texture->channel_count() + channel];
+            }
+        } else {
+            GLog_Error("u32 not supported for channel inversion");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool TextureOps::swap_channels(Texture *texture, u32 channel_a, u32 channel_b) {
+    if (!texture) {
+        GLog_Error("Invalid texture for channel swap");
+        return false;
+    }
+    if (channel_a >= texture->channel_count() || channel_b >= texture->channel_count()) {
+        GLog_Error("Invalid channel index for channel swap: %d / %d (max: %d)", channel_a, channel_b,
+                   texture->channel_count() - 1);
+        return false;
+    }
+    auto buffer = IO::Buffer::wrap_borrowed(&texture->data());
+    if (texture->bpc() == 1) {
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            std::swap(buffer[i * texture->channel_count() + channel_a],
+                      buffer[i * texture->channel_count() + channel_b]);
+        }
+    } else if (texture->bpc() == 2) {
+        const auto u16_buffer = buffer.writable_view_as<u16>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            std::swap(u16_buffer[i * texture->channel_count() + channel_a],
+                      u16_buffer[i * texture->channel_count() + channel_b]);
+        }
+    } else if (texture->bpc() == 4) {
+        const auto u32_buffer = buffer.writable_view_as<u32>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            std::swap(u32_buffer[i * texture->channel_count() + channel_a],
+                      u32_buffer[i * texture->channel_count() + channel_b]);
+        }
+    }
+    return true;
 }

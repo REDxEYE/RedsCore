@@ -462,6 +462,32 @@ Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, in
     return std::move(texture);
 }
 
+bool Texture::is_solid_color() const {
+    const auto pixel_size = static_cast<size_t>(m_bpc) * static_cast<size_t>(m_channel_count);
+
+    if (pixel_size == 0 || m_data.empty()) {
+        return true;
+    }
+
+    if (m_data.size() < pixel_size) {
+        return false;
+    }
+
+    if (m_data.size() % pixel_size != 0) {
+        return false;
+    }
+
+    const u8 *first_pixel = m_data.data();
+
+    for (size_t offset = pixel_size; offset < m_data.size(); offset += pixel_size) {
+        if (std::memcmp(first_pixel, m_data.data() + offset, pixel_size) != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void Texture::save(const std::filesystem::path &path_without_ext) const {
     ZoneScoped
     if (m_is_float) {

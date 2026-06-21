@@ -3,8 +3,9 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 
-#include "fstream"
+#include "redscore/platform/buffer/buffer.h"
 
 #include "redscore/platform/file/file.h"
 
@@ -28,16 +29,25 @@ namespace IO {
         [[nodiscard]] const std::ifstream &stream() const;
 
         void open_read(const std::filesystem::path &path);
+
         void open(const std::filesystem::path &path, std::ios::openmode mode);
 
         void set_position(std::streamoff position, std::ios::seekdir origin) override;
+
         std::streamsize get_position() override;
+
         size_t read(void *dst, std::streamsize size) override;
+
         size_t write(const void *src, std::streamsize size) override;
+
         size_t get_size() override;
+
         void close() override;
+
         size_t skip(uint32 size) override;
+
         [[nodiscard]] const std::filesystem::path &path() const;
+
         std::span<const uint8> cbuffer() override;
 
     private:
@@ -64,16 +74,25 @@ namespace IO {
         [[nodiscard]] const std::ofstream &stream() const;
 
         void open_write(const std::filesystem::path &path);
+
         void open(const std::filesystem::path &path, std::ios::openmode mode);
 
         void set_position(std::streamoff position, std::ios::seekdir origin) override;
+
         std::streamsize get_position() override;
+
         size_t read(void *dst, std::streamsize size) override;
+
         size_t write(const void *src, std::streamsize size) override;
+
         size_t get_size() override;
+
         void close() override;
+
         size_t skip(uint32 size) override;
+
         [[nodiscard]] const std::filesystem::path &path() const;
+
         std::span<const uint8> cbuffer() override;
 
     private:
@@ -81,13 +100,28 @@ namespace IO {
         std::ofstream m_stream;
     };
 
-    inline FilePtr open_file(std::string_view path){
+    // inline FilePtr open_file(std::string_view path) {
+    //     return std::make_unique<NativeFile>(path);
+    // }
+
+    inline FilePtr open_file(const std::filesystem::path &path) {
         return std::make_unique<NativeFile>(path);
     }
-    inline FilePtr open_file(const std::filesystem::path& path){
-        return std::make_unique<NativeFile>(path);
-    }
-    inline FilePtr open_file_write(const std::filesystem::path& path){
+
+    inline FilePtr open_file_write(const std::filesystem::path &path) {
         return std::make_unique<WritableNativeFile>(path);
+    }
+
+    inline Buffer read_file(const std::filesystem::path &path) {
+        NativeFile file{path};
+        Buffer buffer = Buffer::of_fixed_size(file.get_size());
+        file.read_exact(buffer.as_span());
+        return buffer;
+    }
+
+    inline Buffer read_file(const FilePtr &file) {
+        Buffer buffer = Buffer::of_fixed_size(file->get_size());
+        file->read_exact(buffer.as_span());
+        return buffer;
     }
 }

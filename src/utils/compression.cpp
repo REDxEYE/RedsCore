@@ -10,6 +10,7 @@
 #include "redscore/utils/compression.hpp"
 
 #include <format>
+#include <limits>
 
 
 std::optional<IO::Buffer> decompress_zlib(const IO::Buffer &in, const u64 decompressed_size, int32 wbits) {
@@ -23,7 +24,7 @@ std::optional<IO::Buffer> decompress_zlib(const IO::Buffer &in, const u64 decomp
     if (rc != Z_OK)
         throw std::runtime_error(std::format("Decompression failed: {}", zng_z_errmsg[rc]));
 
-    if (in_len > UINT_MAX || expected_out_len > UINT_MAX) {
+    if (in_len > std::numeric_limits<u32>::max() || expected_out_len > std::numeric_limits<u32>::max()) {
         zng_inflateEnd(&s);
         throw std::runtime_error("Decompression failed, input buffer too large");
     }

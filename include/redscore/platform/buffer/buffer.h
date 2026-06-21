@@ -50,6 +50,10 @@ namespace IO {
             return data_[index];
         }
 
+        [[nodiscard]] constexpr operator bool() const noexcept {
+            return data_ != nullptr && size_ != 0;
+        }
+
         [[nodiscard]] constexpr reference front() const noexcept { return data_[0]; }
         [[nodiscard]] constexpr reference back() const noexcept { return data_[size_ - 1]; }
 
@@ -88,38 +92,44 @@ namespace IO {
         }
 
         template<typename U>
-        [[nodiscard]] BufferView<U> view_as(const size_type element_offset = 0, const size_type element_count = npos) {
+        [[nodiscard]] BufferView<U> view_as(const size_type offset = 0,
+                                            const size_type element_count = npos,
+                                            const bool permit_unaligned = false) {
+            static_assert(std::is_trivially_copyable_v<std::remove_cv_t<U> >, "U must be trivially copyable");
             static_assert(!std::is_const_v<T>, "Cannot create writable typed view from const BufferView");
             static_assert(std::is_trivially_copyable_v<std::remove_cv_t<U> >, "U must be trivially copyable");
 
-            const size_type byte_offset = checked_mul(element_offset, sizeof(U));
-            const size_type byte_count = validate_typed_view(byte_offset, element_count, sizeof(U), alignof(U));
+            const size_type byte_count = validate_typed_view(offset, element_count, sizeof(U), alignof(U),
+                                                             permit_unaligned);
             auto *base = reinterpret_cast<u8 *>(data_);
-            return BufferView<U>(reinterpret_cast<U *>(base + byte_offset), byte_count / sizeof(U));
+            return BufferView<U>(reinterpret_cast<U *>(base + offset), byte_count / sizeof(U));
         }
 
         template<typename U>
-        [[nodiscard]] BufferView<U> writable_view_as(const size_type element_offset = 0,
-                                                     const size_type element_count = npos) {
+        [[nodiscard]] BufferView<U> writable_view_as(const size_type offset = 0,
+                                                     const size_type element_count = npos,
+                                                     const bool permit_unaligned = false) {
             static_assert(!std::is_const_v<U>, "writable_view_as<U>() requires non-const U");
-            return view_as<U>(element_offset, element_count);
+            return view_as<U>(offset, element_count, permit_unaligned);
         }
 
         template<typename U>
-        [[nodiscard]] BufferView<const U> view_as(const size_type element_offset = 0,
-                                                  const size_type element_count = npos) const {
+        [[nodiscard]] BufferView<const U> view_as(const size_type offset = 0,
+                                                  const size_type element_count = npos,
+                                                  const bool permit_unaligned = false) const {
             static_assert(std::is_trivially_copyable_v<std::remove_cv_t<U> >, "U must be trivially copyable");
 
-            const size_type byte_offset = checked_mul(element_offset, sizeof(U));
-            const size_type byte_count = validate_typed_view(byte_offset, element_count, sizeof(U), alignof(U));
+            const size_type byte_count = validate_typed_view(offset, element_count, sizeof(U), alignof(U),
+                                                             permit_unaligned);
             auto *base = reinterpret_cast<const u8 *>(data_);
-            return BufferView<const U>(reinterpret_cast<const U *>(base + byte_offset), byte_count / sizeof(U));
+            return BufferView<const U>(reinterpret_cast<const U *>(base + offset), byte_count / sizeof(U));
         }
 
         template<typename U>
-        [[nodiscard]] BufferView<const U> readonly_view_as(const size_type element_offset = 0,
-                                                           const size_type element_count = npos) const {
-            return view_as<U>(element_offset, element_count);
+        [[nodiscard]] BufferView<const U> readonly_view_as(const size_type offset = 0,
+                                                           const size_type element_count = npos,
+                                                           const bool permit_unaligned = false) const {
+            return view_as<U>(offset, element_count, permit_unaligned);
         }
 
     private:
@@ -135,7 +145,8 @@ namespace IO {
         }
 
         [[nodiscard]] size_type validate_typed_view(const size_type byte_offset, const size_type element_count,
-                                                    const size_type element_size, const size_type alignment) const {
+                                                    const size_type element_size, const size_type alignment,
+                                                    const bool permit_unaligned) const {
             const size_type total_bytes = checked_mul(size_, sizeof(T));
             if (byte_offset > total_bytes) {
                 throw std::out_of_range("BufferView typed view offset is out of range");
@@ -143,7 +154,7 @@ namespace IO {
 
             const auto raw_address = reinterpret_cast<std::uintptr_t>(
                 reinterpret_cast<const u8 *>(data_) + byte_offset);
-            if ((raw_address % alignment) != 0) {
+            if (!permit_unaligned && (raw_address % alignment) != 0) {
                 throw std::invalid_argument("BufferView typed view is not properly aligned");
             }
 
@@ -194,6 +205,10 @@ namespace IO {
             : backend_(std::make_unique<VectorBackend>(std::move(data))) {
         }
 
+        static Buffer of_fixed_size(size_type size) {
+            return Buffer(std::make_unique<UniqueFixedArrayBackend>(size));
+        }
+
         static Buffer from_unique(std::unique_ptr<u8[]> data, size_type size, size_type capacity = npos) {
             return Buffer(std::make_unique<UniqueArrayBackend>(std::move(data), size, capacity));
         }
@@ -212,6 +227,21 @@ namespace IO {
 
         static Buffer wrap_borrowed(std::vector<u8> *data) {
             return Buffer(std::make_unique<BorrowedVectorBackend>(data));
+        }
+
+        Buffer(const Buffer &other) = delete;
+
+        Buffer(Buffer &&other) noexcept
+            : backend_(std::move(other.backend_)) {
+        }
+
+        Buffer &operator=(const Buffer &other) = delete;
+
+        Buffer &operator=(Buffer &&other) noexcept {
+            if (this == &other)
+                return *this;
+            backend_ = std::move(other.backend_);
+            return *this;
         }
 
         [[nodiscard]] bool is_owning() const noexcept { return backend_->is_owning(); }
@@ -300,35 +330,33 @@ namespace IO {
         }
 
         template<typename T>
-        [[nodiscard]] BufferView<T> view_as(const size_type element_offset = 0, const size_type element_count = npos) {
+        [[nodiscard]] BufferView<T> view_as(const size_type offset = 0, const size_type element_count = npos) {
             static_assert(std::is_trivially_copyable_v<std::remove_cv_t<T> >, "T must be trivially copyable");
 
-            const size_type byte_offset = checked_mul(element_offset, sizeof(T));
-            const size_type byte_count = validate_typed_view(byte_offset, element_count, sizeof(T), alignof(T));
-            return BufferView<T>(reinterpret_cast<T *>(data() + byte_offset), byte_count / sizeof(T));
+            const size_type byte_count = validate_typed_view(offset, element_count, sizeof(T));
+            return BufferView<T>(reinterpret_cast<T *>(data() + offset), byte_count / sizeof(T));
         }
 
         template<typename T>
-        [[nodiscard]] BufferView<T> writable_view_as(const size_type element_offset = 0,
+        [[nodiscard]] BufferView<T> writable_view_as(const size_type offset = 0,
                                                      const size_type element_count = npos) {
             static_assert(!std::is_const_v<T>, "writable_view_as<T>() requires non-const T");
-            return view_as<T>(element_offset, element_count);
+            return view_as<T>(offset, element_count);
         }
 
         template<typename T>
-        [[nodiscard]] BufferView<const T> view_as(const size_type element_offset = 0,
+        [[nodiscard]] BufferView<const T> view_as(const size_type offset = 0,
                                                   const size_type element_count = npos) const {
             static_assert(std::is_trivially_copyable_v<std::remove_cv_t<T> >, "T must be trivially copyable");
 
-            const size_type byte_offset = checked_mul(element_offset, sizeof(T));
-            const size_type byte_count = validate_typed_view(byte_offset, element_count, sizeof(T), alignof(T));
-            return BufferView<const T>(reinterpret_cast<const T *>(data() + byte_offset), byte_count / sizeof(T));
+            const size_type byte_count = validate_typed_view(offset, element_count, sizeof(T));
+            return BufferView<const T>(reinterpret_cast<const T *>(data() + offset), byte_count / sizeof(T));
         }
 
         template<typename T>
-        [[nodiscard]] BufferView<const T> readonly_view_as(const size_type element_offset = 0,
+        [[nodiscard]] BufferView<const T> readonly_view_as(const size_type offset = 0,
                                                            const size_type element_count = npos) const {
-            return view_as<T>(element_offset, element_count);
+            return view_as<T>(offset, element_count);
         }
 
         [[nodiscard]] ByteBufferView view(const size_type offset = 0, const size_type count = npos) {
@@ -575,6 +603,53 @@ namespace IO {
             size_type capacity_ = 0;
         };
 
+        class UniqueFixedArrayBackend final : public Backend {
+        public:
+            UniqueFixedArrayBackend(const size_type size) : size_(size) {
+                data_ = std::make_unique<u8[]>(size);
+            }
+
+            [[nodiscard]] bool is_owning() const noexcept override { return true; }
+            [[nodiscard]] bool is_mutable() const noexcept override { return true; }
+            [[nodiscard]] bool is_resizable() const noexcept override { return false; }
+            [[nodiscard]] bool is_expandable() const noexcept override { return false; }
+
+            [[nodiscard]] u8 *data_mut() override { return data_.get(); }
+            [[nodiscard]] const u8 *data() const noexcept override { return data_.get(); }
+            [[nodiscard]] size_type size() const noexcept override { return size_; }
+            [[nodiscard]] size_type capacity() const noexcept override { return size_; }
+
+            void clear() override { size_ = 0; }
+
+            void resize(const size_type new_size) override {
+                throw std::runtime_error("resize not implemented");
+            }
+
+            void reserve(const size_type new_capacity) override {
+                throw std::runtime_error("reserve not implemented");
+            }
+
+            void push_back(const u8 value) override {
+                const size_type index = size_;
+                resize(size_ + 1);
+                data_[index] = value;
+            }
+
+            void append(const u8 *bytes, const size_type count) override {
+                if (count == 0) {
+                    return;
+                }
+
+                const size_type old_size = size_;
+                resize(size_ + count);
+                std::copy_n(bytes, count, data_.get() + old_size);
+            }
+
+        private:
+            std::unique_ptr<u8[]> data_;
+            size_type size_ = 0;
+        };
+
         class ExternalMutableBackend final : public Backend {
         public:
             ExternalMutableBackend(u8 *data, const size_type size, const size_type capacity)
@@ -670,14 +745,9 @@ namespace IO {
         }
 
         [[nodiscard]] size_type validate_typed_view(const size_type byte_offset, const size_type element_count,
-                                                    const size_type element_size, const size_type alignment) const {
+                                                    const size_type element_size) const {
             if (byte_offset > size()) {
                 throw std::out_of_range("Buffer typed view offset is out of range");
-            }
-
-            const auto raw_address = reinterpret_cast<std::uintptr_t>(data() + byte_offset);
-            if ((raw_address % alignment) != 0) {
-                throw std::invalid_argument("Buffer typed view is not properly aligned");
             }
 
             const size_type available_bytes = size() - byte_offset;

@@ -57,3 +57,16 @@ void IO::File::read_string(const uint32 size, std::string &str) {
         str.resize(size-1);
     }
 }
+
+std::string IO::File::read_cstring_at(const i64 offset, const u32 size) {
+    const auto old_pos = get_position();
+    set_position(offset);
+    std::string str;
+    if (size==-1) {
+        read_cstring(str);
+    } else {
+        read_string(size, str);
+    }
+    set_position(old_pos);
+    return str;
+}

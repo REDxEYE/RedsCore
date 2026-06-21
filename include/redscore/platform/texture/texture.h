@@ -9,12 +9,16 @@
 #include "redscore/int_def.h"
 
 enum class DDSDXGIFormat:uint32 {
+    DXGI_FORMAT_R32G32B32A32_FLOAT = 2,
+    DXGI_FORMAT_R32G32B32A32_UINT = 3,
     DXGI_FORMAT_R16G16B16A16_TYPELESS = 9,
     DXGI_FORMAT_R16G16B16A16_FLOAT = 10,
     DXGI_FORMAT_R16G16B16A16_UNORM = 11,
     DXGI_FORMAT_R16G16B16A16_UINT = 12,
     DXGI_FORMAT_R16G16B16A16_SNORM = 13,
     DXGI_FORMAT_R16G16B16A16_SINT = 14,
+    DXGI_FORMAT_R32G32_FLOAT = 16,
+    DXGI_FORMAT_R32G32_UINT = 17,
     DXGI_FORMAT_R11G11B10_FLOAT = 26,
     DXGI_FORMAT_R8G8B8A8_TYPELESS = 27,
     DXGI_FORMAT_R8G8B8A8_UNORM = 28,
@@ -22,8 +26,15 @@ enum class DDSDXGIFormat:uint32 {
     DXGI_FORMAT_R8G8B8A8_UINT = 30,
     DXGI_FORMAT_R8G8B8A8_SNORM = 31,
     DXGI_FORMAT_R8G8B8A8_SINT = 32,
+    DXGI_FORMAT_R16G16_FLOAT = 34,
     DXGI_FORMAT_R16G16_UNORM = 35,
+    DXGI_FORMAT_R16G16_UINT = 36,
+    DXGI_FORMAT_R32_FLOAT = 41,
+    DXGI_FORMAT_R32_UINT = 42,
+    DXGI_FORMAT_R8G8_UNORM = 49,
+    DXGI_FORMAT_R16_FLOAT = 54,
     DXGI_FORMAT_R16_UNORM = 56,
+    DXGI_FORMAT_R16_UINT = 57,
     DXGI_FORMAT_R8_UNORM = 61,
     DXGI_FORMAT_BC1_TYPELESS = 70,
     DXGI_FORMAT_BC1_UNORM = 71,
@@ -131,6 +142,8 @@ public:
     static uint32 calculate_mip_size(uint32 mip, uint32 width, uint32 height, DDSDXGIFormat format);
 
     static Texture from_dxgi(DDSDXGIFormat format, std::span<const u8> data, i32 width, i32 height, i16 depth);
+
+    bool is_solid_color() const;
 
     void save(const std::filesystem::path &path_without_ext) const;
 

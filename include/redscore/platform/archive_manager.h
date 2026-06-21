@@ -3,49 +3,74 @@
 #pragma once
 
 #include <utility>
-#include <vector>
 #include <memory>
 #include <deque>
+#include <functional>
+#include <ranges>
+#include <unordered_map>
 #include <unordered_set>
-#include "redscore/platform/archive.h"
 
-class ArchiveManager : public Archive {
+#include "logger.h"
+#include "redscore/platform/archive.h"
+#include "tracy/Tracy.hpp"
+
+template<typename KeyType>
+class ArchiveManager : public Archive<KeyType> {
 protected:
-    using load_archive_callback = std::function<std::pair<bool, uint64>(ArchiveManager &manager, uint64 hash)>;
+    virtual std::pair<bool, KeyType> load_child_archive(const KeyType &hash) =0;
 
 public:
-    explicit ArchiveManager(load_archive_callback load_archive)
-        : m_load_archive(std::move(load_archive)) {
+    explicit ArchiveManager() {
     }
 
-    [[nodiscard]] bool is_mounted(uint64 archive_hash) const;
+    [[nodiscard]] bool is_mounted(const KeyType &key) const {
+        return m_archives.contains(key);
+    }
 
-    void mount(std::unique_ptr<Archive> archive);
+    void mount(std::unique_ptr<Archive<KeyType> > archive) {
+        m_archives.emplace(archive->key(), std::move(archive));
+    }
 
-    void unmount(uint64 archive_hash);
+    void unmount(const KeyType &key) {
+        forget_dynamic_mount(key);
+        m_archives.erase(key);
+    }
 
-    void unmount(std::string_view name);
+    [[nodiscard]] bool has(const KeyType &key) override {
+        ZoneScoped;
+        for (const auto &archive: m_archives | std::views::values) {
+            if (archive->has(key)) return true;
+        }
+        return false;
+    }
 
-    [[nodiscard]] bool has_file(uint64 hash) override;
+    std::unique_ptr<IO::File> get(const KeyType &key) override {
+        ZoneScoped
+        for (const auto &archive: m_archives | std::views::values) {
+            if (auto file = archive->get(key)) {
+                return std::move(file);
+            }
+        }
+        GLog_Error("File with hash {} not found in any archive", key);
+        return nullptr;
+    }
 
-    [[nodiscard]] bool has_file(std::string_view name) override;
+    // void all_entries(std::vector<ArchiveEntry> &entries) const override;
 
-
-    std::unique_ptr<IO::File> get_file(uint64 hash) override;
-
-    std::unique_ptr<IO::File> get_file(std::string_view name) override;
-
-    void all_entries(std::vector<ArchiveEntry> &entries) const override;
-
-    [[nodiscard]] std::string get_name() const override {
+    [[nodiscard]] std::string_view name() const override {
         return "Root";
     }
 
-    uint64 hash() override {
-        return 0;
+    [[nodiscard]] const KeyType& key() const override {
+        static KeyType value{};
+        return value;
     }
 
-    ArchiveManager() = delete;
+    void foreach_file(std::function<void(const KeyType&, const std::string&)> callback) const {
+        for (const auto &archive: m_archives | std::views::values) {
+            archive->foreach_file(callback);
+        }
+    }
 
     ArchiveManager(const ArchiveManager &) = delete;
 
@@ -56,17 +81,48 @@ public:
     ArchiveManager &operator=(ArchiveManager &&) noexcept = default;
 
 protected:
-    std::unordered_map<uint64, std::unique_ptr<Archive> > m_archives;
-    load_archive_callback m_load_archive;
+    std::unordered_map<KeyType, std::unique_ptr<Archive<KeyType> > > m_archives;
 
     static constexpr size_t MAX_DYNAMIC_MOUNTS = 32;
 
-    void touch_dynamic_mount(uint64 hash);
+    void touch_dynamic_mount(KeyType key) {
+        if (!m_dynamic_mount_set.insert(key).second) {
+            const auto &it = std::ranges::find(m_dynamic_mount_order, key);
+            if (it != m_dynamic_mount_order.end()) {
+                m_dynamic_mount_order.erase(it);
+            }
+        }
+        m_dynamic_mount_order.push_back(key);
+    }
 
-    void evict_dynamic_mounts();
+    void evict_dynamic_mounts() {
+        while (m_dynamic_mount_order.size() > MAX_DYNAMIC_MOUNTS) {
+            const auto oldest_hash = m_dynamic_mount_order.front();
+            m_dynamic_mount_order.pop_front();
+            m_dynamic_mount_set.erase(oldest_hash);
 
-    void forget_dynamic_mount(uint64 hash);
+            for (auto it = m_archives.begin(); it != m_archives.end();) {
+                if (it->second->key() == oldest_hash) {
+                    GLog_Info("Evicting {}", it->second->name());
+                    it = m_archives.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+    }
 
-    std::deque<uint64> m_dynamic_mount_order;
-    std::unordered_set<uint64> m_dynamic_mount_set;
+    void forget_dynamic_mount(KeyType key) {
+        if (!m_dynamic_mount_set.erase(key)) {
+            return;
+        }
+
+        const auto it = std::ranges::find(m_dynamic_mount_order, key);
+        if (it != m_dynamic_mount_order.end()) {
+            m_dynamic_mount_order.erase(it);
+        }
+    }
+
+    std::deque<KeyType> m_dynamic_mount_order;
+    std::unordered_set<KeyType> m_dynamic_mount_set;
 };

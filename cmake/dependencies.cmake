@@ -38,16 +38,6 @@ SET(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
 SET(ZSTD_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(zstd)
 
-set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
-set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
-FetchContent_Declare(
-        tinygltf
-        GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
-        GIT_TAG v2.9.7
-        GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(tinygltf)
-
 FetchContent_Declare(
         glm
         GIT_REPOSITORY "https://github.com/g-truc/glm"
