@@ -2,6 +2,7 @@
 
 #pragma once
 #include "redscore/platform/file/memory_file.h"
+#include <format>
 
 
 template<typename KeyType>
