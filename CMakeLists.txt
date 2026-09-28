@@ -20,7 +20,6 @@ add_library(RedsCore STATIC
         src/platform/file/native_file.cpp
         src/stb.cpp
         src/utils/common.cpp
-        src/utils/memory_debugger.cpp
         src/utils/simple_fileio.cpp
         src/utils/compression.cpp
         src/platform/vertex_buffer.cpp
@@ -33,4 +32,14 @@ target_precompile_headers(RedsCore PRIVATE
 
 target_include_directories(RedsCore PUBLIC include)
 target_link_libraries(RedsCore PUBLIC Tracy::TracyClient glm::glm tinycpng-static zlib-ng-static libzstd_static CLI11::CLI11 nlohmann_json::nlohmann_json)
-target_compile_definitions(RedsCore PRIVATE TRACY_MEMORY TRACY_ON_DEMAND)
+#target_compile_definitions(RedsCore PRIVATE TRACY_MEMORY TRACY_ON_DEMAND)
+
+
+
+option(REDSCORE_BUILD_MODEL_TESTS "Build virtual model serialization tests" OFF)
+if(REDSCORE_BUILD_MODEL_TESTS)
+    enable_testing()
+    add_executable(RedsCoreModelTests tests/virtual_model_test.cpp)
+    target_link_libraries(RedsCoreModelTests PRIVATE RedsCore)
+    add_test(NAME RedsCore.VirtualModel COMMAND RedsCoreModelTests)
+endif()

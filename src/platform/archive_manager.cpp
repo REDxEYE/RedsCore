@@ -9,12 +9,3 @@
 #include <string_view>
 #include <algorithm>
 
-static constexpr auto hash_string = std::hash<std::string_view>{};
-
-// void ArchiveManager::all_entries(std::vector<ArchiveEntry> &entries) const {
-//     ZoneScoped;
-//     for (const auto &archive: m_archives | std::views::values) {
-//         archive->all_entries(entries);
-//     }
-// }
-

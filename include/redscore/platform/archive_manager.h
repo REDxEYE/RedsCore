@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <algorithm>
+#include <vector>
 #include <utility>
 #include <memory>
 #include <deque>
@@ -55,8 +57,6 @@ public:
         return nullptr;
     }
 
-    // void all_entries(std::vector<ArchiveEntry> &entries) const override;
-
     [[nodiscard]] std::string_view name() const override {
         return "Root";
     }
@@ -66,10 +66,34 @@ public:
         return value;
     }
 
-    void foreach_file(std::function<void(const KeyType&, const std::string&)> callback) const {
+    bool foreach_file(const std::function<bool(const typename Archive<KeyType>::ArchiveEntry &)> &callback) override {
+        // Callbacks may mount/unmount archives. Keep a stable snapshot and pin its
+        // archives until enumeration finishes, including nested enumerations.
+        std::vector<std::shared_ptr<Archive<KeyType>>> archives;
+        archives.reserve(m_archives.size());
         for (const auto &archive: m_archives | std::views::values) {
-            archive->foreach_file(callback);
+            archives.push_back(archive);
         }
+
+        bool completed = true;
+        // try {
+            for (const auto &archive: archives) {
+                if (m_dynamic_mount_set.contains(archive->key())) {
+                    touch_dynamic_mount(archive->key());
+                }
+                if (!archive->foreach_file(callback)) {
+                    completed = false;
+                    break;
+                }
+            }
+        // } catch (...) {
+        //     archives.clear();
+        //     evict_dynamic_mounts();
+        //     throw;
+        // }
+        archives.clear();
+        evict_dynamic_mounts();
+        return completed;
     }
 
     ArchiveManager(const ArchiveManager &) = delete;
@@ -81,7 +105,7 @@ public:
     ArchiveManager &operator=(ArchiveManager &&) noexcept = default;
 
 protected:
-    std::unordered_map<KeyType, std::unique_ptr<Archive<KeyType> > > m_archives;
+    std::unordered_map<KeyType, std::shared_ptr<Archive<KeyType>>> m_archives;
 
     static constexpr size_t MAX_DYNAMIC_MOUNTS = 32;
 
@@ -96,19 +120,23 @@ protected:
     }
 
     void evict_dynamic_mounts() {
-        while (m_dynamic_mount_order.size() > MAX_DYNAMIC_MOUNTS) {
-            const auto oldest_hash = m_dynamic_mount_order.front();
-            m_dynamic_mount_order.pop_front();
-            m_dynamic_mount_set.erase(oldest_hash);
-
-            for (auto it = m_archives.begin(); it != m_archives.end();) {
-                if (it->second->key() == oldest_hash) {
-                    GLog_Info("Evicting {}", it->second->name());
-                    it = m_archives.erase(it);
-                } else {
-                    ++it;
-                }
+        // Limit unused mounts. Active traversals may pin additional archives;
+        // counting those would evict a newly loaded child before get() can read it.
+        auto unused = std::ranges::count_if(m_dynamic_mount_order, [this](const auto &key) {
+            const auto archive = m_archives.find(key);
+            return archive == m_archives.end() || archive->second.use_count() == 1;
+        });
+        auto it = m_dynamic_mount_order.begin();
+        while (unused > MAX_DYNAMIC_MOUNTS && it != m_dynamic_mount_order.end()) {
+            const auto archive = m_archives.find(*it);
+            if (archive != m_archives.end() && archive->second.use_count() > 1) {
+                ++it;
+                continue;
             }
+            m_dynamic_mount_set.erase(*it);
+            if (archive != m_archives.end()) m_archives.erase(archive);
+            it = m_dynamic_mount_order.erase(it);
+            --unused;
         }
     }
 
