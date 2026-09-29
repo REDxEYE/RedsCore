@@ -22,11 +22,9 @@ namespace ISR {
         return std::make_shared<TextureReference>(std::move(name), std::move(data), nullptr);
     }
 
-    void Primitive::set_attribute(ElementUsage usage, uint32_t set, const void *data, size_t bytes,
-                                  ElementFormat format, ElementType type, size_t count, bool normalized,
-                                  std::string custom_name) {
+    void Primitive::set_attribute(const VertexAttribute& attribute) {
         attributes.push_back({
-            usage, set, std::move(custom_name), format, type, normalized, count, copy_bytes(data, bytes)
+            attribute.usage, attribute.set, attribute.custom_name, attribute.format, attribute.type, attribute.normalized, attribute.count, copy_bytes(attribute.data.data(), attribute.data.size())
         });
     }
 
@@ -314,6 +312,47 @@ namespace ISR {
                 return g.index();
             }
 
+            int light(const Light &light) {
+                const auto &c = light.color;
+                if (!std::isfinite(c.x) || !std::isfinite(c.y) || !std::isfinite(c.z) ||
+                    c.x < 0.f || c.y < 0.f || c.z < 0.f || c.x > 1.f || c.y > 1.f || c.z > 1.f)
+                    throw std::invalid_argument("Invalid light color");
+                if (!std::isfinite(light.intensity) || light.intensity < 0.f)
+                    throw std::invalid_argument("Invalid light intensity");
+                if (!std::isfinite(light.range) || light.range < 0.f)
+                    throw std::invalid_argument("Invalid light range");
+                if (light.type == LightType::Spot &&
+                    (!std::isfinite(light.inner_cone_angle) || !std::isfinite(light.outer_cone_angle) ||
+                     light.inner_cone_angle < 0.f || light.inner_cone_angle >= light.outer_cone_angle ||
+                     light.outer_cone_angle > 1.5707963267948966f))
+                    throw std::invalid_argument("Invalid spot cone angles");
+                auto &model = out.model();
+                if (model.lights.size() >= static_cast<size_t>(std::numeric_limits<int32_t>::max()))
+                    throw std::invalid_argument("Light count exceeds int32 limit");
+                tinygltf::Light g;
+                g.name = light.name;
+                g.color = {c.x, c.y, c.z};
+                g.intensity = light.intensity;
+                switch (light.type) {
+                    case LightType::Directional:
+                        if (light.range != 0.f) throw std::invalid_argument("Directional light cannot have a range");
+                        g.type = "directional";
+                        break;
+                    case LightType::Point: g.type = "point"; break;
+                    case LightType::Spot:
+                        g.type = "spot";
+                        g.spot.innerConeAngle = light.inner_cone_angle;
+                        g.spot.outerConeAngle = light.outer_cone_angle;
+                        break;
+                    default: throw std::invalid_argument("Invalid light type");
+                }
+                g.range = light.range;
+                const int index = static_cast<int>(model.lights.size());
+                model.lights.push_back(std::move(g));
+                out.add_extension("KHR_lights_punctual", false);
+                return index;
+            }
+
             NodeHandle node(const NodePtr &n) {
                 if (!n) throw std::invalid_argument("Null scene node");
                 if (visiting.contains(n.get())) throw std::invalid_argument("Scene cycle");
@@ -323,6 +362,7 @@ namespace ISR {
                 auto g = out.make<tinygltf::Node>();
                 nodes[n.get()] = g;
                 g->name = n->name;
+                if (n->light) g->light = light(*n->light);
                 if (n->transform.matrix_override) {
                     // Preserve affine matrices exactly, including shear; do not decompose them to TRS.
                     const auto &matrix = *n->transform.matrix_override;

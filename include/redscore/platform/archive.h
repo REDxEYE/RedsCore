@@ -11,6 +11,7 @@ class Archive : public Container<KeyType> {
 public:
     struct ArchiveEntry {
         KeyType key;
+        KeyType parent;
         uint64 size;
     };
 

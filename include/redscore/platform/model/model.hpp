@@ -70,9 +70,7 @@ namespace ISR {
         size_t index_count{0};
         DataBuffer indices;
 
-        void set_attribute(ElementUsage usage, uint32_t set, const void *data, size_t bytes,
-                           ElementFormat format, ElementType type, size_t count, bool normalized = false,
-                           std::string custom_name = {});
+        void set_attribute(const VertexAttribute& attribute);
 
         void set_indices(const void *data, size_t bytes, IndexType type, size_t count);
     };
@@ -144,10 +142,23 @@ namespace ISR {
 
     using SkinPtr = std::shared_ptr<SkeletonInstance>;
 
+    enum class LightType { Directional, Point, Spot };
+
+    struct Light {
+        std::string name;
+        LightType type{LightType::Point};
+        glm::vec3 color{1.f};
+        float intensity{1.f};
+        float range{0.f}; // Zero means unbounded.
+        float inner_cone_angle{0.f};
+        float outer_cone_angle{0.7853981633974483f}; // Spot half-angle in radians.
+    };
+
     struct Node {
         std::string name;
         Transform transform;
         nlohmann::json extras;
+        std::optional<Light> light;
         std::vector<NodePtr> children;
         std::weak_ptr<Node> parent;
         std::shared_ptr<Model> model;
