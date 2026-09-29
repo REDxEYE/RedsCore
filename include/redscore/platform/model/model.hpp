@@ -150,8 +150,8 @@ namespace ISR {
         glm::vec3 color{1.f};
         float intensity{1.f};
         float range{0.f}; // Zero means unbounded.
-        float inner_cone_angle{0.f};
-        float outer_cone_angle{0.7853981633974483f}; // Spot half-angle in radians.
+        double inner_cone_angle{0.};
+        double outer_cone_angle{0.7853981633974483}; // Spot half-angle in radians.
     };
 
     struct Node {

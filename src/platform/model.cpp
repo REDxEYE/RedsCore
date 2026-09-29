@@ -22,9 +22,10 @@ namespace ISR {
         return std::make_shared<TextureReference>(std::move(name), std::move(data), nullptr);
     }
 
-    void Primitive::set_attribute(const VertexAttribute& attribute) {
+    void Primitive::set_attribute(const VertexAttribute &attribute) {
         attributes.push_back({
-            attribute.usage, attribute.set, attribute.custom_name, attribute.format, attribute.type, attribute.normalized, attribute.count, copy_bytes(attribute.data.data(), attribute.data.size())
+            attribute.usage, attribute.set, attribute.custom_name, attribute.format, attribute.type,
+            attribute.normalized, attribute.count, copy_bytes(attribute.data.data(), attribute.data.size())
         });
     }
 
@@ -70,12 +71,12 @@ namespace ISR {
         if (auto previous = child->parent.lock()) std::erase(previous->children, child);
         std::erase(scene.roots, child);
         child->parent = parent;
-        if (std::find(parent->children.begin(), parent->children.end(), child) == parent->children.end()) parent->
-                children.push_back(child);
+        if (std::ranges::find(parent->children, child) == parent->children.end())
+            parent->children.push_back(child);
     }
 
     glm::mat4 SceneBuilder::global_matrix(const NodePtr &node) {
-        if (!node) return glm::mat4(1.f);
+        if (!node) return {1.f};
         return global_matrix(node->parent.lock()) * node->transform.matrix();
     }
 
@@ -91,8 +92,8 @@ namespace ISR {
         }
         for (size_t i = 0; i < skin->joints.size(); ++i) {
             const auto parent = skin->skeleton->bones[i].parent;
-            if (parent < -1 || parent >= static_cast<int64_t>(skin->joints.size())) throw std::invalid_argument(
-                "Invalid bone parent");
+            if (parent < -1 || parent >= static_cast<int64_t>(skin->joints.size()))
+                throw std::invalid_argument("Invalid bone parent");
             set_parent(parent < 0 ? skin->root : skin->joints[parent], skin->joints[i]);
         }
         add_to_scene(skin->root);
@@ -179,8 +180,8 @@ namespace ISR {
                 case ElementUsage::Joints: return "JOINTS_" + std::to_string(a.set);
                 case ElementUsage::Weights: return "WEIGHTS_" + std::to_string(a.set);
                 case ElementUsage::Custom:
-                    if (a.custom_name.empty() || a.custom_name[0] != '_') throw std::invalid_argument(
-                        "Custom attribute must start with underscore");
+                    if (a.custom_name.empty() || a.custom_name[0] != '_')
+                        throw std::invalid_argument("Custom attribute must start with underscore");
                     return a.custom_name;
             }
             throw std::invalid_argument("Invalid attribute semantic");
@@ -270,13 +271,14 @@ namespace ISR {
                             ElementFormat::F32)
                             throw std::invalid_argument("Matrix attributes require F32");
                         auto name = semantic(a);
-                        if (gp.attributes.contains(name)) throw std::invalid_argument("Duplicate vertex semantic");
-                        auto accessor = out.set_primitive_attribute(gp, name, a.data.data(), a.data.size(),
+                        if (gp.attributes.contains(name))
+                            throw std::invalid_argument("Duplicate vertex semantic");
+                        const auto accessor = out.set_primitive_attribute(gp, name, a.data.data(), a.data.size(),
                                                                     component(a.format), shape(a.type), count,
                                                                     a.normalized);
                         if (a.usage == ElementUsage::Position) {
-                            if (a.format != ElementFormat::F32 || a.type != ElementType::Vec3) throw
-                                    std::invalid_argument("Positions require F32 Vec3");
+                            if (a.format != ElementFormat::F32 || a.type != ElementType::Vec3)
+                                throw std::invalid_argument("Positions require F32 Vec3");
                             std::vector<double> low(3, std::numeric_limits<double>::infinity()), high(
                                 3, -std::numeric_limits<double>::infinity());
                             for (size_t i = 0; i < count; ++i)
@@ -293,8 +295,8 @@ namespace ISR {
                     }
                     if (p.index_count) {
                         size_t width = p.index_type == IndexType::U8 ? 1 : p.index_type == IndexType::U16 ? 2 : 4;
-                        if (p.indices.size() / width != p.index_count || p.indices.size() % width) throw
-                                std::invalid_argument("Invalid index buffer size");
+                        if (p.indices.size() / width != p.index_count || p.indices.size() % width)
+                            throw std::invalid_argument("Invalid index buffer size");
                         for (size_t i = 0; i < p.index_count; ++i) {
                             uint32_t index = 0;
                             std::memcpy(&index, p.indices.data() + i * width, width);
@@ -338,7 +340,8 @@ namespace ISR {
                         if (light.range != 0.f) throw std::invalid_argument("Directional light cannot have a range");
                         g.type = "directional";
                         break;
-                    case LightType::Point: g.type = "point"; break;
+                    case LightType::Point: g.type = "point";
+                        break;
                     case LightType::Spot:
                         g.type = "spot";
                         g.spot.innerConeAngle = light.inner_cone_angle;
@@ -356,8 +359,8 @@ namespace ISR {
             NodeHandle node(const NodePtr &n) {
                 if (!n) throw std::invalid_argument("Null scene node");
                 if (visiting.contains(n.get())) throw std::invalid_argument("Scene cycle");
-                if (nodes.contains(n.get())) throw std::invalid_argument(
-                    "Node has multiple parents; instance the model on separate nodes");
+                if (nodes.contains(n.get()))
+                    throw std::invalid_argument("Node has multiple parents; instance the model on separate nodes");
                 visiting.insert(n.get());
                 auto g = out.make<tinygltf::Node>();
                 nodes[n.get()] = g;
@@ -366,13 +369,15 @@ namespace ISR {
                 if (n->transform.matrix_override) {
                     // Preserve affine matrices exactly, including shear; do not decompose them to TRS.
                     const auto &matrix = *n->transform.matrix_override;
-                    for (int col = 0; col < 4; ++col) for (int row = 0; row < 4; ++row) {
-                        if (!std::isfinite(matrix[col][row])) throw std::invalid_argument("Non-finite node matrix");
-                        g->matrix.push_back(matrix[col][row]);
-                    }
+                    for (int col = 0; col < 4; ++col)
+                        for (int row = 0; row < 4; ++row) {
+                            if (!std::isfinite(matrix[col][row])) throw std::invalid_argument("Non-finite node matrix");
+                            g->matrix.push_back(matrix[col][row]);
+                        }
+                } else {
+                    GltfHelper::set_node_transform(g, n->transform.translation, n->transform.scale,
+                                                   n->transform.rotation);
                 }
-                else GltfHelper::set_node_transform(g, n->transform.translation, n->transform.scale,
-                                                    n->transform.rotation);
                 if (!n->extras.is_null()) g->extras = json_value(n->extras);
                 SkinPtr binding = n->skin.lock();
                 if (n->model && n->model->skeleton && !binding) {
@@ -410,24 +415,25 @@ namespace ISR {
                 auto g = out.make<tinygltf::Animation>();
                 g->name = a.name;
                 for (const auto &c: a.channels) {
-                    if (c.path == AnimationPath::Weights) throw std::invalid_argument(
-                        "Morph animation requires morph targets (not implemented)");
+                    if (c.path == AnimationPath::Weights)
+                        throw std::invalid_argument("Morph animation requires morph targets (not implemented)");
                     auto found = std::find_if(binding->joints.begin(), binding->joints.end(),
                                               [&](auto &j) { return j->name == c.bone; });
-                    if (found == binding->joints.end()) throw std::invalid_argument(
-                        "Animation bone not found: " + c.bone);
+                    if (found == binding->joints.end())
+                        throw std::invalid_argument("Animation bone not found: " + c.bone);
                     auto width = c.path == AnimationPath::Rotation ? 4u : 3u;
                     auto multiplier = c.interpolation == Interpolation::CubicSpline ? 3u : 1u;
-                    if (c.times.empty() || c.values.size() != c.times.size() * width * multiplier) throw
-                            std::invalid_argument("Invalid animation sample count");
+                    if (c.times.empty() || c.values.size() != c.times.size() * width * multiplier)
+                        throw std::invalid_argument("Invalid animation sample count");
                     float previous = -1.f;
                     for (float t: c.times) {
-                        if (!std::isfinite(t) || t < 0 || t <= previous) throw std::invalid_argument(
-                            "Invalid animation times");
+                        if (!std::isfinite(t) || t < 0 || t <= previous)
+                            throw std::invalid_argument("Invalid animation times");
                         previous = t;
                     }
-                    for (float v: c.values) if (!std::isfinite(v)) throw std::invalid_argument(
-                        "Non-finite animation sample");
+                    for (float v: c.values)
+                        if (!std::isfinite(v))
+                            throw std::invalid_argument("Non-finite animation sample");
                     auto input = out.create_accessor_chain(reinterpret_cast<const uint8_t *>(c.times.data()),
                                                            c.times.size() * 4, 0, TINYGLTF_COMPONENT_TYPE_FLOAT,
                                                            TINYGLTF_TYPE_SCALAR, c.times.size());
@@ -460,8 +466,8 @@ namespace ISR {
 
             int skin(const SkinPtr &s) {
                 if (auto i = skins.find(s.get()); i != skins.end()) return i->second;
-                if (!s || !s->skeleton || s->joints.size() != s->skeleton->bones.size() || s->joints.empty()) throw
-                        std::invalid_argument("Invalid skeleton instance");
+                if (!s || !s->skeleton || s->joints.size() != s->skeleton->bones.size() || s->joints.empty())
+                    throw std::invalid_argument("Invalid skeleton instance");
                 auto g = out.make<tinygltf::Skin>();
                 skins[s.get()] = g.index();
                 g->name = s->skeleton->name;
@@ -475,8 +481,8 @@ namespace ISR {
                     if (state[i] == 2) return globals[i];
                     state[i] = 1;
                     auto parent = s->skeleton->bones[i].parent;
-                    if (parent < -1 || parent >= static_cast<int64_t>(globals.size())) throw std::invalid_argument(
-                        "Invalid bone parent");
+                    if (parent < -1 || parent >= static_cast<int64_t>(globals.size()))
+                        throw std::invalid_argument("Invalid bone parent");
                     globals[i] = (parent < 0 ? glm::mat4(1.f) : global(parent)) * s->skeleton->bones[i].transform.
                                  matrix();
                     state[i] = 2;
@@ -485,11 +491,12 @@ namespace ISR {
                 for (size_t i = 0; i < s->joints.size(); ++i) {
                     g->joints.push_back(nodes.at(s->joints[i].get()).index());
                     auto matrix = global(i);
-                    if (std::abs(glm::determinant(matrix)) < 1e-12f) throw std::invalid_argument(
-                        "Singular bind transform");
+                    if (std::abs(glm::determinant(matrix)) < 1e-12f)
+                        throw std::invalid_argument("Singular bind transform");
                     auto inv = glm::inverse(matrix);
-                    for (int col = 0; col < 4; ++col) for (int row = 0; row < 4; ++row) inverse.
-                            push_back(inv[col][row]);
+                    for (int col = 0; col < 4; ++col)
+                        for (int row = 0; row < 4; ++row)
+                            inverse.push_back(inv[col][row]);
                 }
                 g->inverseBindMatrices = out.create_accessor_chain(reinterpret_cast<const uint8_t *>(inverse.data()),
                                                                    inverse.size() * 4, 0, TINYGLTF_COMPONENT_TYPE_FLOAT,
@@ -523,8 +530,8 @@ namespace ISR {
         to_gltf(scene, helper);
         if (!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path());
         tinygltf::TinyGLTF writer;
-        if (!writer.WriteGltfSceneToFile(&helper.model(), path.string(), false, embed_buffers, true, false)) return
-                false;
+        if (!writer.WriteGltfSceneToFile(&helper.model(), path.string(), false, embed_buffers, true, false))
+            return false;
         for (const auto &extra: scene.extra_files) {
             auto destination = path.parent_path() / extra.name;
             std::ofstream file(destination, std::ios::binary);
