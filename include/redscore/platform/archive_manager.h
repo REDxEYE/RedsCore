@@ -46,6 +46,22 @@ public:
         return false;
     }
 
+    const KeyType& get_parent_key_for(const KeyType &key) {
+        for (const auto &archive: m_archives | std::views::values) {
+            if (archive->has(key)) {
+                return archive->get_parent_key();
+            }
+        }
+        static constexpr u64 z = 0;
+        return z;
+    }
+
+    const KeyType& get_parent_key() override {
+        static constexpr u64 z = 0;
+        return z;
+
+    }
+
     std::unique_ptr<IO::File> get(const KeyType &key) override {
         ZoneScoped
         for (const auto &archive: m_archives | std::views::values) {
@@ -61,7 +77,7 @@ public:
         return "Root";
     }
 
-    [[nodiscard]] const KeyType& key() const override {
+    [[nodiscard]] const KeyType &key() const override {
         static KeyType value{};
         return value;
     }
@@ -69,7 +85,7 @@ public:
     bool foreach_file(const std::function<bool(const typename Archive<KeyType>::ArchiveEntry &)> &callback) override {
         // Callbacks may mount/unmount archives. Keep a stable snapshot and pin its
         // archives until enumeration finishes, including nested enumerations.
-        std::vector<std::shared_ptr<Archive<KeyType>>> archives;
+        std::vector<std::shared_ptr<Archive<KeyType> > > archives;
         archives.reserve(m_archives.size());
         for (const auto &archive: m_archives | std::views::values) {
             archives.push_back(archive);
@@ -77,15 +93,15 @@ public:
 
         bool completed = true;
         // try {
-            for (const auto &archive: archives) {
-                if (m_dynamic_mount_set.contains(archive->key())) {
-                    touch_dynamic_mount(archive->key());
-                }
-                if (!archive->foreach_file(callback)) {
-                    completed = false;
-                    break;
-                }
+        for (const auto &archive: archives) {
+            if (m_dynamic_mount_set.contains(archive->key())) {
+                touch_dynamic_mount(archive->key());
             }
+            if (!archive->foreach_file(callback)) {
+                completed = false;
+                break;
+            }
+        }
         // } catch (...) {
         //     archives.clear();
         //     evict_dynamic_mounts();
@@ -105,7 +121,7 @@ public:
     ArchiveManager &operator=(ArchiveManager &&) noexcept = default;
 
 protected:
-    std::unordered_map<KeyType, std::shared_ptr<Archive<KeyType>>> m_archives;
+    std::unordered_map<KeyType, std::shared_ptr<Archive<KeyType> > > m_archives;
 
     static constexpr size_t MAX_DYNAMIC_MOUNTS = 32;
 

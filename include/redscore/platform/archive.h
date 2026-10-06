@@ -13,6 +13,8 @@ public:
         KeyType key;
         KeyType parent;
         uint64 size;
+        uint64 total;
+        uint64 i;
     };
 
     ~Archive() override = default;
@@ -22,6 +24,8 @@ public:
     [[nodiscard]] virtual std::string_view name() const = 0;
 
     [[nodiscard]] virtual const KeyType& key() const = 0;
+
+    [[nodiscard]] virtual const KeyType& get_parent_key() = 0;
 
     // virtual uint64 hash() = 0;
 
