@@ -209,7 +209,7 @@ Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, in
             const uint32 blocks_high = (height + 3) / 4;
             const uint32 expected_compressed_size = blocks_wide * blocks_high * block_size;
             if (data.size() < expected_compressed_size) {
-                GLog_Error("Unexpected input size: %u, expected: %u", data.size(), expected_compressed_size);
+                GLog_Error("Unexpected input size: {}, expected: {}", data.size(), expected_compressed_size);
                 throw std::runtime_error("Unexpected input size");
             }
             const uint8 *input = data.data();
