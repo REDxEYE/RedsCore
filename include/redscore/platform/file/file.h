@@ -4,9 +4,7 @@
 #include <memory>
 #include <span>
 #include <vector>
-#include <fstream>
 
-#include "redscore/int_def.h"
 #include "redscore/platform/buffer/buffer.h"
 
 namespace IO {

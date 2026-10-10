@@ -19,6 +19,14 @@ class GltfHelper;
 namespace ISR {
     using DataBuffer = std::vector<uint8_t>;
 
+    template<typename T>
+    DataBuffer data_buffer_from_(std::span<const T> data) {
+        DataBuffer buffer;
+        buffer.resize(data.size_bytes());
+        std::memcpy(buffer.data(), data.data(), data.size_bytes());
+        return buffer;
+    }
+
     enum class ElementFormat { U8, U16, U32, I8, I16, I32, F16, F32 };
 
     enum class ElementType { Scalar, Vec2, Vec3, Vec4, Mat3, Mat4 };
@@ -48,7 +56,9 @@ namespace ISR {
 
     using TexturePtr = std::shared_ptr<TextureReference>;
 
-    TexturePtr png_texture(std::string name, DataBuffer data);
+    TexturePtr png_texture(const std::string &name, DataBuffer data);
+
+    TexturePtr lazy_png_texture(const std::string &name, const std::function<DataBuffer()> &data);
 
     enum class AlphaMode { Opaque, Mask, Blend };
 
@@ -70,7 +80,7 @@ namespace ISR {
         size_t index_count{0};
         DataBuffer indices;
 
-        void set_attribute(const VertexAttribute& attribute);
+        void set_attribute(const VertexAttribute &attribute);
 
         void set_indices(const void *data, size_t bytes, IndexType type, size_t count);
     };

@@ -205,6 +205,65 @@ std::unique_ptr<Texture> TextureOps::multiply(const Texture *texture_a, const Te
     return nullptr;
 }
 
+bool TextureOps::multiply_scalar(Texture *texture, const glm::vec4 &scalars) {
+    if (!texture) {
+        GLog_Error("Invalid texture for channel swap");
+        return false;
+    }
+    const uint32 channel_count = texture->channel_count();
+
+    auto buffer = IO::Buffer::wrap_borrowed(&texture->data());
+    if (texture->bpc() == 1) {
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            if (channel_count == 1)
+                buffer[i] *= scalars[0];
+            if (channel_count > 1)
+                buffer[i * texture->channel_count() + 1] *= scalars[1];
+            if (channel_count > 2)
+                buffer[i * texture->channel_count() + 2] *= scalars[2];
+            if (channel_count > 3)
+                buffer[i * texture->channel_count() + 3] *= scalars[3];
+        }
+    } else if (texture->bpc() == 2) {
+        const auto u16_buffer = buffer.writable_view_as<u16>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            if (channel_count == 1)
+                u16_buffer[i] *= scalars[0];
+            if (channel_count > 1)
+                u16_buffer[i * texture->channel_count() + 1] *= scalars[1];
+            if (channel_count > 2)
+                u16_buffer[i * texture->channel_count() + 2] *= scalars[2];
+            if (channel_count > 3)
+                u16_buffer[i * texture->channel_count() + 3] *= scalars[3];
+        }
+    } else if (texture->bpc() == 4 && !texture->is_float()) {
+        const auto u32_buffer = buffer.writable_view_as<u32>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            if (channel_count == 1)
+                u32_buffer[i] *= scalars[0];
+            if (channel_count > 1)
+                u32_buffer[i * texture->channel_count() + 1] *= scalars[1];
+            if (channel_count > 2)
+                u32_buffer[i * texture->channel_count() + 2] *= scalars[2];
+            if (channel_count > 3)
+                u32_buffer[i * texture->channel_count() + 3] *= scalars[3];
+        }
+    } else if (texture->bpc() == 4 && texture->is_float()) {
+        const auto f32_buffer = buffer.writable_view_as<f32>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            if (channel_count == 1)
+                f32_buffer[i] *= scalars[0];
+            if (channel_count > 1)
+                f32_buffer[i * texture->channel_count() + 1] *= scalars[1];
+            if (channel_count > 2)
+                f32_buffer[i * texture->channel_count() + 2] *= scalars[2];
+            if (channel_count > 3)
+                f32_buffer[i * texture->channel_count() + 3] *= scalars[3];
+        }
+    }
+    return true;
+}
+
 bool TextureOps::invert_channel(Texture *texture, u32 channel) {
     if (channel >= texture->channel_count()) {
         GLog_Error("Invalid channel index for texture inversion: %d (max: %d)", channel, texture->channel_count() - 1);
@@ -267,6 +326,39 @@ bool TextureOps::swap_channels(Texture *texture, u32 channel_a, u32 channel_b) {
         for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
             std::swap(u32_buffer[i * texture->channel_count() + channel_a],
                       u32_buffer[i * texture->channel_count() + channel_b]);
+        }
+    }
+    return true;
+}
+
+bool TextureOps::fill_channel(Texture *texture, u32 channel, float value) {
+    if (!texture) {
+        GLog_Error("Invalid texture for channel swap");
+        return false;
+    }
+    if (channel >= texture->channel_count()) {
+        GLog_Error("Invalid channel index for channel fill: %d (max: %d)", channel, texture->channel_count() - 1);
+        return false;
+    }
+    auto buffer = IO::Buffer::wrap_borrowed(&texture->data());
+    if (texture->bpc() == 1) {
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            buffer[i * texture->channel_count() + channel] = value * std::numeric_limits<uint8>::max();
+        }
+    } else if (texture->bpc() == 2) {
+        const auto u16_buffer = buffer.writable_view_as<u16>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            u16_buffer[i * texture->channel_count() + channel] = value * std::numeric_limits<uint16>::max();
+        }
+    } else if (texture->bpc() == 4 && !texture->is_float()) {
+        const auto u32_buffer = buffer.writable_view_as<u32>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            u32_buffer[i * texture->channel_count() + channel] = value * std::numeric_limits<uint32>::max();
+        }
+    } else if (texture->bpc() == 4 && texture->is_float()) {
+        const auto f32_buffer = buffer.writable_view_as<f32>();
+        for (u32 i = 0; i < texture->width() * texture->height(); ++i) {
+            f32_buffer[i * texture->channel_count() + channel] = value;
         }
     }
     return true;

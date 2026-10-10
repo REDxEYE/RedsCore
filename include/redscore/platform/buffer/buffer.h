@@ -229,6 +229,13 @@ namespace IO {
             return Buffer(std::make_unique<BorrowedVectorBackend>(data));
         }
 
+        template<typename T>
+        static Buffer copy_of(BufferView<T> view) {
+            const auto ro_view = view.template readonly_view_as<uint8>();
+            std::vector<uint8> data(ro_view.begin(), ro_view.end());
+            return Buffer(std::make_unique<VectorBackend>(std::move(data)));
+        }
+
         Buffer(const Buffer &other) = delete;
 
         Buffer(Buffer &&other) noexcept

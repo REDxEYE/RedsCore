@@ -18,8 +18,11 @@ namespace ISR {
         }
     }
 
-    TexturePtr png_texture(std::string name, DataBuffer data) {
-        return std::make_shared<TextureReference>(std::move(name), std::move(data), nullptr);
+    TexturePtr png_texture(const std::string &name, DataBuffer data) {
+        return std::make_shared<TextureReference>(name, std::move(data), nullptr);
+    }
+    TexturePtr lazy_png_texture(const std::string& name, const std::function<DataBuffer()>& data) {
+        return std::make_shared<TextureReference>(name, DataBuffer{}, data);
     }
 
     void Primitive::set_attribute(const VertexAttribute &attribute) {
