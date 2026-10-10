@@ -1,6 +1,7 @@
 // Created by RED on 17.09.2025.
 
 #pragma once
+#include <ios>
 #include <memory>
 #include <span>
 #include <vector>
