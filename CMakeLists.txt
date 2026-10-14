@@ -18,6 +18,7 @@ add_library(RedsCore STATIC
         src/platform/file/file.cpp
         src/platform/file/memory_file.cpp
         src/platform/file/native_file.cpp
+        src/platform/file/memmap_file.cpp
         src/stb.cpp
         src/utils/common.cpp
         src/utils/simple_fileio.cpp
