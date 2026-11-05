@@ -10,5 +10,5 @@
 namespace DDS {
     DDSDXGIFormat legacy_pf_to_dxgi(const DDS_PIXELFORMAT &pf);
 
-    Texture read_texture(const IO::FilePtr &file);
+    Texture::Ptr read_texture(const IO::FilePtr &file);
 }

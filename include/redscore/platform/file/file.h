@@ -60,6 +60,13 @@ namespace IO {
             }
         }
 
+        void read_exact(Buffer &data) {
+            const size_t bytesRead = read(data.data(), data.size());
+            if (bytesRead < data.size()) {
+                throw std::runtime_error("Failed to read enough bytes for buffer");
+            }
+        }
+
         virtual size_t get_size() = 0;
 
         virtual void close() = 0;

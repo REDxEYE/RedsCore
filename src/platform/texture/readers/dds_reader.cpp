@@ -42,7 +42,7 @@ DDSDXGIFormat DDS::legacy_pf_to_dxgi(const DDS_PIXELFORMAT &pf) {
     throw std::runtime_error("DDS: unsupported legacy pixel format");
 }
 
-Texture DDS::read_texture(const IO::FilePtr &file) {
+Texture::Ptr DDS::read_texture(const IO::FilePtr &file) {
     const auto magic = file->read_u32();
     if (magic != DDS_MAGIC) {
         throw std::runtime_error("DDS: invalid magic");

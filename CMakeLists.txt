@@ -9,7 +9,13 @@ add_library(RedsCore STATIC
         src/platform/archive.cpp
         src/platform/app_state.cpp
         src/platform/archive_manager.cpp
-        src/platform/gltf_helper.cpp
+        src/platform/model/writers/gltf/serialize.cpp
+        src/platform/model/writers/gltf/scene.cpp
+        src/platform/model/writers/gltf/mesh.cpp
+        src/platform/model/writers/gltf/material.cpp
+        src/platform/model/writers/gltf/helper_data.cpp
+        src/platform/model/writers/gltf/helper_scene.cpp
+        src/platform/model/writers/gltf/helper_save.cpp
         src/platform/logger.cpp
         src/platform/texture/texture.cpp
         src/platform/texture/texture_ops.cpp
@@ -25,6 +31,12 @@ add_library(RedsCore STATIC
         src/utils/compression.cpp
         src/platform/vertex_buffer.cpp
         src/platform/model.cpp
+        src/platform/model/writers/cast/writer.cpp
+        src/platform/model/writers/cast/transform.cpp
+        src/platform/model/writers/cast/mesh.cpp
+        src/platform/model/writers/cast/model.cpp
+        src/platform/model/writers/cast/scene.cpp
+        src/platform/texture_export_session.cpp
 )
 
 target_precompile_headers(RedsCore PRIVATE
@@ -43,4 +55,10 @@ if(REDSCORE_BUILD_MODEL_TESTS)
     add_executable(RedsCoreModelTests tests/virtual_model_test.cpp)
     target_link_libraries(RedsCoreModelTests PRIVATE RedsCore)
     add_test(NAME RedsCore.VirtualModel COMMAND RedsCoreModelTests)
+    add_executable(RedsCoreCastTests tests/virtual_model_cast_test.cpp)
+    target_link_libraries(RedsCoreCastTests PRIVATE RedsCore)
+    add_test(NAME RedsCore.Cast COMMAND RedsCoreCastTests)
+    add_executable(RedsCoreTextureTests tests/texture_export_session_test.cpp)
+    target_link_libraries(RedsCoreTextureTests PRIVATE RedsCore)
+    add_test(NAME RedsCore.TextureExport COMMAND RedsCoreTextureTests)
 endif()

@@ -18,8 +18,10 @@
 #include <system_error>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
-#include <Windows.h>
+#endif
+#include <windows.h>
 #else
 #include <cerrno>
 #include <fcntl.h>

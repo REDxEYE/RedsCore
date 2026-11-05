@@ -51,7 +51,6 @@ public:
     template<typename... Args>
     void error_s(std::string_view source, uint32 source_line, std::format_string<Args...> fmt, Args&&... args) const {
         log_s(LogLevel::Error, source, source_line, std::format(fmt, std::forward<Args>(args)...));
-        output_->flush();
     }
 
     void set_output(std::ostream& output);

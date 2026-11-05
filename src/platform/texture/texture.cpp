@@ -117,7 +117,7 @@ uint32 Texture::calculate_mip_size(const uint32 mip, const uint32 width, const u
     }
 }
 
-Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, int32 width, int32 height, int16 depth) {
+Texture::Ptr Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, int32 width, int32 height, int16 depth) {
     ZoneScoped
     if (data.size() == 0) {
         throw std::runtime_error("Empty input data");
@@ -458,8 +458,7 @@ Texture Texture::from_dxgi(DDSDXGIFormat format, std::span<const uint8> data, in
         }
     }
 
-    Texture texture(width, height, depth, bpc, channels, is_float, std::move(decoded_data));
-    return std::move(texture);
+    return std::make_shared<Texture>(width, height, depth, bpc, channels, is_float, std::move(decoded_data));
 }
 
 bool Texture::is_solid_color() const {
@@ -533,8 +532,9 @@ void Texture::save(const std::filesystem::path &path_without_ext) const {
         // }
         PNGFile file = {};
         png_from_data(m_data.data(), m_data.size(), m_width, m_height, m_channel_count, 8, &file);
-
-        std::filesystem::create_directories(output_path.parent_path());
+        if (output_path.parent_path()!=""){
+            std::filesystem::create_directories(output_path.parent_path());
+        }
         FILE *file_handle = fopen(output_path.string().c_str(), "wb");
         UserIO io = {.read_func = native_file_read, .write_func = native_file_write, .user_file = file_handle};
         png_write(&io, &config, &file);

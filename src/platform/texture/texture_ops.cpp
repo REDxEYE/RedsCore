@@ -9,7 +9,7 @@
 #include "redscore/platform/file/memory_file.h"
 
 
-std::unique_ptr<Texture> multiply_4c_by_1c(const Texture *a, const Texture *b) {
+std::unique_ptr<Texture> multiply_4c_by_1c(const Texture::Ptr &a, const Texture::Ptr &b) {
     // Fast path
     if (a->width() == b->width() && a->height() == b->height()) {
         const uint32 pixel_count = a->width() * a->height();
@@ -45,8 +45,8 @@ std::unique_ptr<Texture> multiply_4c_by_1c(const Texture *a, const Texture *b) {
     float aspect_a = (float) a->width() / (float) a->height();
     float aspect_b = (float) b->width() / (float) b->height();
     if (aspect_a == aspect_b) {
-        const Texture *hires = a->width() > b->width() ? a : b;
-        const Texture *lowres = a->width() > b->width() ? b : a;
+        const Texture::Ptr hires = a->width() > b->width() ? a : b;
+        const Texture::Ptr lowres = a->width() > b->width() ? b : a;
         const uint32 scale_factor = hires->width() / lowres->width();
         if (hires->width() == lowres->width() * scale_factor &&
             hires->height() == lowres->height() * scale_factor) {
@@ -99,7 +99,7 @@ std::unique_ptr<Texture> multiply_4c_by_1c(const Texture *a, const Texture *b) {
     return nullptr;
 }
 
-std::unique_ptr<Texture> multiply_3c_by_1c(const Texture *a, const Texture *b) {
+std::unique_ptr<Texture> multiply_3c_by_1c(const Texture::Ptr &a, const Texture::Ptr &b) {
     // Fast path
     if (a->width() == b->width() && a->height() == b->height()) {
         const uint32 pixel_count = a->width() * a->height();
@@ -135,8 +135,8 @@ std::unique_ptr<Texture> multiply_3c_by_1c(const Texture *a, const Texture *b) {
     float aspect_a = (float) a->width() / (float) a->height();
     float aspect_b = (float) b->width() / (float) b->height();
     if (aspect_a == aspect_b) {
-        const Texture *hires = a->width() > b->width() ? a : b;
-        const Texture *lowres = a->width() > b->width() ? b : a;
+        const Texture::Ptr hires = a->width() > b->width() ? a : b;
+        const Texture::Ptr lowres = a->width() > b->width() ? b : a;
         const uint32 scale_factor = hires->width() / lowres->width();
 
         if (hires->width() == lowres->width() * scale_factor &&
@@ -183,15 +183,15 @@ std::unique_ptr<Texture> multiply_3c_by_1c(const Texture *a, const Texture *b) {
     return nullptr;
 }
 
-std::unique_ptr<Texture> TextureOps::multiply(const Texture *texture_a, const Texture *texture_b) {
+std::unique_ptr<Texture> TextureOps::multiply(const Texture::Ptr &texture_a, const Texture::Ptr &texture_b) {
     if (texture_a->bpc() != texture_b->bpc() ||
         texture_a->is_float() != texture_b->is_float() ||
         texture_a->depth() != texture_b->depth()) {
         GLog_Error("Unsupported texture multiplication due to mismatched properties");
         return nullptr;
     }
-    const Texture *tex_a = texture_a->channel_count() > texture_b->channel_count() ? texture_a : texture_b;
-    const Texture *tex_b = texture_a->channel_count() > texture_b->channel_count() ? texture_b : texture_a;
+    const Texture::Ptr tex_a = texture_a->channel_count() > texture_b->channel_count() ? texture_a : texture_b;
+    const Texture::Ptr tex_b = texture_a->channel_count() > texture_b->channel_count() ? texture_b : texture_a;
 
     if (tex_a->channel_count() == 4 && tex_b->channel_count() == 1) {
         return multiply_4c_by_1c(tex_a, tex_b);
@@ -205,7 +205,7 @@ std::unique_ptr<Texture> TextureOps::multiply(const Texture *texture_a, const Te
     return nullptr;
 }
 
-bool TextureOps::multiply_scalar(Texture *texture, const glm::vec4 &scalars) {
+bool TextureOps::multiply_scalar(const Texture::Ptr &texture, const glm::vec4 &scalars) {
     if (!texture) {
         GLog_Error("Invalid texture for channel swap");
         return false;
@@ -264,7 +264,7 @@ bool TextureOps::multiply_scalar(Texture *texture, const glm::vec4 &scalars) {
     return true;
 }
 
-bool TextureOps::invert_channel(Texture *texture, u32 channel) {
+bool TextureOps::invert_channel(const Texture::Ptr &texture, u32 channel) {
     if (channel >= texture->channel_count()) {
         GLog_Error("Invalid channel index for texture inversion: %d (max: %d)", channel, texture->channel_count() - 1);
         return false;
@@ -299,7 +299,7 @@ bool TextureOps::invert_channel(Texture *texture, u32 channel) {
     return true;
 }
 
-bool TextureOps::swap_channels(Texture *texture, u32 channel_a, u32 channel_b) {
+bool TextureOps::swap_channels(const Texture::Ptr &texture, u32 channel_a, u32 channel_b) {
     if (!texture) {
         GLog_Error("Invalid texture for channel swap");
         return false;
@@ -331,7 +331,7 @@ bool TextureOps::swap_channels(Texture *texture, u32 channel_a, u32 channel_b) {
     return true;
 }
 
-bool TextureOps::fill_channel(Texture *texture, u32 channel, float value) {
+bool TextureOps::fill_channel(const Texture::Ptr &texture, u32 channel, float value) {
     if (!texture) {
         GLog_Error("Invalid texture for channel swap");
         return false;
@@ -361,5 +361,99 @@ bool TextureOps::fill_channel(Texture *texture, u32 channel, float value) {
             f32_buffer[i * texture->channel_count() + channel] = value;
         }
     }
+    return true;
+}
+
+Texture::Ptr TextureOps::extract_channel(const Texture::Ptr &texture, const u32 channel) {
+    if (!texture) {
+        GLog_Error("Invalid texture for channel extraction");
+        return nullptr;
+    }
+
+    const u32 channel_count = texture->channel_count();
+    if (channel >= channel_count) {
+        GLog_Error("Invalid channel index");
+        return nullptr;
+    }
+
+    if (channel_count == 1) {
+        return texture;
+    }
+
+    auto result = std::make_shared<Texture>(
+        texture->width(),
+        texture->height(),
+        texture->depth(),
+        texture->bpc(),
+        1,
+        texture->is_float()
+    );
+
+    const size_t bpc = texture->bpc();
+    const size_t pixel_count = static_cast<size_t>(texture->width()) * texture->height() * texture->depth();
+
+    const auto *src = texture->data().data();
+    auto *dst = result->data().data();
+
+    const size_t src_stride = channel_count * bpc;
+
+    for (size_t i = 0; i < pixel_count; ++i) {
+        std::memcpy(
+            dst + i * bpc,
+            src + i * src_stride + channel * bpc,
+            bpc
+        );
+    }
+
+    return result;
+}
+
+
+bool TextureOps::insert_channel(const Texture::Ptr &texture, const u32 channel, const Texture::Ptr &channel_texture
+) {
+    if (!texture || !channel_texture) {
+        GLog_Error("Invalid texture for channel insertion");
+        return false;
+    }
+
+    if (channel >= texture->channel_count()) {
+        GLog_Error("Channel index is out of bounds");
+        return false;
+    }
+
+    if (channel_texture->channel_count() != 1) {
+        GLog_Error("Source texture must have exactly one channel");
+        return false;
+    }
+
+    if (texture->bpc() != channel_texture->bpc() ||
+        texture->is_float() != channel_texture->is_float()) {
+        GLog_Error("Channel texture format does not match");
+        return false;
+    }
+
+    if (texture->width() != channel_texture->width() ||
+        texture->height() != channel_texture->height() ||
+        texture->depth() != channel_texture->depth()) {
+        GLog_Error("Channel texture dimensions do not match");
+        return false;
+    }
+
+    const size_t bpc = texture->bpc();
+    const size_t pixel_count = static_cast<size_t>(texture->width()) * texture->height() * texture->depth();
+
+    const size_t dst_stride = texture->channel_count() * bpc;
+
+    const auto *src = channel_texture->data().data();
+    auto *dst = texture->data().data();
+
+    for (size_t i = 0; i < pixel_count; ++i) {
+        std::memcpy(
+            dst + i * dst_stride + channel * bpc,
+            src + i * bpc,
+            bpc
+        );
+    }
+
     return true;
 }

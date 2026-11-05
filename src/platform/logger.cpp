@@ -4,12 +4,17 @@
 #include <format>
 #include <string_view>
 #include <iostream>
-#include <memory>
+#include <mutex>
+
+namespace {
+    std::mutex logger_mutex;
+}
 
 // Logger implementation
 Logger::Logger(std::ostream& output) : output_(&output) {}
 
 void Logger::set_output(std::ostream& output) {
+    const std::lock_guard lock(logger_mutex);
     output_ = &output;
 }
 
@@ -18,6 +23,7 @@ void Logger::log(const LogLevel level, const std::string_view message) const {
 }
 
 void Logger::log_s(const LogLevel level, std::string_view source, uint32 source_line, std::string_view message) const {
+    const std::lock_guard lock(logger_mutex);
     std::string_view prefix;
     switch (level) {
         case LogLevel::Info:    prefix = "[INFO ]"; break;
@@ -35,19 +41,13 @@ void Logger::log_s(const LogLevel level, std::string_view source, uint32 source_
 
 // Global logger namespace implementation
 namespace GLog {
-    namespace {
-        std::unique_ptr<Logger> g_logger;
-    }
-
     void init(std::ostream& output) {
-        g_logger = std::make_unique<Logger>(output);
+        get().set_output(output);
     }
 
     Logger& get() {
-        if (!g_logger) {
-            g_logger = std::make_unique<Logger>(std::cout);
-        }
-        return *g_logger;
+        static Logger logger(std::cout);
+        return logger;
     }
 
     std::string_view file_name(const std::string_view name) {

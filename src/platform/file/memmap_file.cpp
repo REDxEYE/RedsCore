@@ -5,7 +5,7 @@
 #include "redscore/platform/file/memmap_file.hpp"
 
 
-inline void IO::MappedFile::set_position(const std::streamoff offset, const std::ios::seekdir origin) {
+void IO::MappedFile::set_position(const std::streamoff offset, const std::ios::seekdir origin) {
     size_t base;
 
     switch (origin) {

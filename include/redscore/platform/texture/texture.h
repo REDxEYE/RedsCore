@@ -126,11 +126,13 @@ struct std::formatter<MemoryFormat> : std::formatter<std::string_view> {
 
 class Texture {
 public:
+    using Ptr = std::shared_ptr<Texture>;
+    using UPtr = std::unique_ptr<Texture>;
     Texture(const i32 width, const i32 height, const i32 depth, const u8 bpc,
             const u8 channel_count, const bool is_float) : m_width(width), m_height(height),
                                                            m_depth(depth > 0 ? depth : 1), m_bpc(bpc),
                                                            m_channel_count(channel_count), m_is_float(is_float) {
-        m_data.reserve(width * height * depth * channel_count * bpc);
+        m_data.resize(width * height * depth * channel_count * bpc);
     }
 
     Texture(const i32 width, const i32 height, const i32 depth, const u8 bpc, const u8 channel_count,
@@ -141,9 +143,9 @@ public:
 
     static uint32 calculate_mip_size(uint32 mip, uint32 width, uint32 height, DDSDXGIFormat format);
 
-    static Texture from_dxgi(DDSDXGIFormat format, std::span<const u8> data, i32 width, i32 height, i16 depth);
+    static Texture::Ptr from_dxgi(DDSDXGIFormat format, std::span<const u8> data, i32 width, i32 height, i16 depth);
 
-    bool is_solid_color() const;
+    [[nodiscard]] bool is_solid_color() const;
 
     void save(const std::filesystem::path &path_without_ext) const;
 
@@ -164,6 +166,6 @@ private:
     i16 m_depth;
     u8 m_bpc;
     u8 m_channel_count;
-    uint32 m_is_float;
+    bool m_is_float;
     std::vector<u8> m_data;
 };

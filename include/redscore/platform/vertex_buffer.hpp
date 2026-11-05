@@ -50,8 +50,8 @@ struct Attribute {
         : usage(usage),
           type(type),
           offset(offset),
-          normalized(normalized),
-          component_count(component_count) {
+          component_count(component_count),
+          normalized(normalized) {
     }
 
 
